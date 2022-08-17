@@ -3,6 +3,7 @@ version = 1
 
 
 cloudstream {
+    language = "en"
     // All of these properties are optional, you can safely remove them
 
     description = "Includes many providers with the same layout as Vidstream"
