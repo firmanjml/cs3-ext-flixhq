@@ -40,7 +40,7 @@ class NginxSettingsFragment(private val plugin: Plugin, val nginxApi: NginxApi) 
         // object : View.OnClickListener is required to make it compile because otherwise it used invoke-customs
         infoView.setOnClickListener(object : View.OnClickListener {
             override fun onClick(v: View?) {
-                openBrowser("https://www.sarlays.com/use-nginx-with-cloudstream/")
+                openBrowser(nginxApi.createAccountUrl)
             }
         })
 

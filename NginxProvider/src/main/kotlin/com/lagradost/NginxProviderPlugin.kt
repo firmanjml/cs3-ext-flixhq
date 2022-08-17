@@ -23,7 +23,7 @@ class NginxProviderPlugin : Plugin() {
 
     init {
         this.openSettings = {
-            val activity = context as? AppCompatActivity
+            val activity = it as? AppCompatActivity
             if (activity != null) {
                 val frag = NginxSettingsFragment(this, nginxApi)
                 frag.show(activity.supportFragmentManager, nginxApi.name)
