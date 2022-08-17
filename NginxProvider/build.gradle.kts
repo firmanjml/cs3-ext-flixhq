@@ -1,3 +1,9 @@
+dependencies {
+    implementation("androidx.legacy:legacy-support-v4:1.0.0")
+    implementation("com.google.android.material:material:1.4.0")
+    implementation("androidx.lifecycle:lifecycle-extensions:2.2.0")
+}
+
 // use an integer for version numbers
 version = 1
 
@@ -22,5 +28,5 @@ cloudstream {
         "TvSeries",
         "Movie",
     )
-
-    }
+    requiresResources = true
+}
