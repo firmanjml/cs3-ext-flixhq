@@ -15,12 +15,12 @@
         android:padding="20dp">
 
         <ImageView
+            android:id="@+id/nginx_login_imageview"
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:layout_gravity="start|center_vertical"
             android:layout_marginEnd="20dp"
-            android:scaleType="centerInside"
-            android:src="@drawable/nginx" />
+            android:scaleType="centerInside" />
 
         <LinearLayout
             android:layout_width="0dp"
@@ -58,13 +58,12 @@
         android:padding="20dp">
 
         <ImageView
-            android:id="@+id/entry_icon"
+            android:id="@+id/nginx_info_imageview"
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:layout_gravity="start|center_vertical"
             android:layout_marginEnd="20dp"
-            android:scaleType="centerInside"
-            android:src="@drawable/nginx_question" />
+            android:scaleType="centerInside" />
 
         <LinearLayout
             android:layout_width="0dp"
