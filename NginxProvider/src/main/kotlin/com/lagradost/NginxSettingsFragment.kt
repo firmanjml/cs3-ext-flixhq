@@ -41,12 +41,12 @@ class NginxSettingsFragment(private val plugin: Plugin, val nginxApi: NginxApi) 
     }
 
     private fun getString(name: String): String {
-        val id = plugin.resources!!.getIdentifier(name, "string", "com.lagradost")
+        val id = plugin.resources!!.getIdentifier(name, "string", "com.lagradost.cloudstream3")
         return this.getString(id)
     }
 
     private fun getAttr(name: String): Int {
-        return plugin.resources!!.getIdentifier(name, "attr", "com.lagradost")
+        return plugin.resources!!.getIdentifier(name, "attr", "com.lagradost.cloudstream3")
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
