@@ -1,5 +1,6 @@
 package com.lagradost
 
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -9,12 +10,12 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.lagradost.cloudstream3.AcraApplication.Companion.openBrowser
-import com.lagradost.cloudstream3.R.drawable.nginx
-import com.lagradost.cloudstream3.R.drawable.nginx_question
+import com.lagradost.cloudstream3.R.attr.white
 import com.lagradost.cloudstream3.R.string.*
 import com.lagradost.cloudstream3.plugins.Plugin
 import com.lagradost.cloudstream3.ui.settings.SettingsAccount.Companion.showLoginInfo
 import com.lagradost.cloudstream3.ui.settings.SettingsAccount.Companion.addAccount
+import com.lagradost.cloudstream3.utils.UIHelper.colorFromAttribute
 
 class NginxSettingsFragment(private val plugin: Plugin, val nginxApi: NginxApi) :
     BottomSheetDialogFragment() {
@@ -34,6 +35,10 @@ class NginxSettingsFragment(private val plugin: Plugin, val nginxApi: NginxApi) 
         return this.findViewById(id)
     }
 
+    private fun getDrawableId(name: String): Int {
+        return plugin.resources!!.getIdentifier(name, "drawable", "com.lagradost")
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val infoView = view.findView<LinearLayout>("nginx_info")
@@ -43,12 +48,16 @@ class NginxSettingsFragment(private val plugin: Plugin, val nginxApi: NginxApi) 
 
         infoTextView.text = getString(nginx_info_title)
         infoSubTextView.text = getString(nginx_info_summary)
-        infoImageView.setImageResource(nginx_question)
+        infoImageView.setImageResource(
+            getDrawableId("nginx_question")
+        )
+        infoImageView.imageTintList = ColorStateList.valueOf(view.context.colorFromAttribute(white))
 
         val loginView = view.findView<LinearLayout>("nginx_login")
         val loginTextView = view.findView<TextView>("main_text")
         val loginImageView = view.findView<ImageView>("nginx_login_imageview")
-        loginImageView.setImageResource(nginx)
+        loginImageView.setImageResource(getDrawableId("nginx"))
+        loginImageView.imageTintList = ColorStateList.valueOf(view.context.colorFromAttribute(white))
 
         // object : View.OnClickListener is required to make it compile because otherwise it used invoke-customs
         infoView.setOnClickListener(object : View.OnClickListener {
