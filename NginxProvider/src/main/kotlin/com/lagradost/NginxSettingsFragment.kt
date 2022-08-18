@@ -1,6 +1,7 @@
 package com.lagradost
 
 import android.content.res.ColorStateList
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -8,6 +9,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.content.res.ResourcesCompat
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.lagradost.cloudstream3.AcraApplication.Companion.openBrowser
 import com.lagradost.cloudstream3.R.attr.white
@@ -35,8 +37,11 @@ class NginxSettingsFragment(private val plugin: Plugin, val nginxApi: NginxApi) 
         return this.findViewById(id)
     }
 
-    private fun getDrawableId(name: String): Int {
-        return plugin.resources!!.getIdentifier(name, "drawable", "com.lagradost")
+    // val theme = plugin.resources!!.newTheme()
+
+    private fun getDrawable(name: String): Drawable? {
+        val id = plugin.resources!!.getIdentifier(name, "drawable", "com.lagradost")
+        return ResourcesCompat.getDrawable(plugin.resources!!, id, null) //plugin.resources!!.getDrawable(id, theme)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -48,15 +53,15 @@ class NginxSettingsFragment(private val plugin: Plugin, val nginxApi: NginxApi) 
 
         infoTextView.text = getString(nginx_info_title)
         infoSubTextView.text = getString(nginx_info_summary)
-        infoImageView.setImageResource(
-            getDrawableId("nginx_question")
+        infoImageView.setImageDrawable(
+            getDrawable("nginx_question")
         )
         infoImageView.imageTintList = ColorStateList.valueOf(view.context.colorFromAttribute(white))
 
         val loginView = view.findView<LinearLayout>("nginx_login")
         val loginTextView = view.findView<TextView>("main_text")
         val loginImageView = view.findView<ImageView>("nginx_login_imageview")
-        loginImageView.setImageResource(getDrawableId("nginx"))
+        loginImageView.setImageDrawable(getDrawable("nginx"))
         loginImageView.imageTintList = ColorStateList.valueOf(view.context.colorFromAttribute(white))
 
         // object : View.OnClickListener is required to make it compile because otherwise it used invoke-customs
