@@ -17,6 +17,8 @@ import com.lagradost.cloudstream3.ui.settings.SettingsAccount.Companion.showLogi
 import com.lagradost.cloudstream3.ui.settings.SettingsAccount.Companion.addAccount
 import com.lagradost.cloudstream3.utils.UIHelper.colorFromAttribute
 
+const val packageName = "com.lagradost"
+
 class NginxSettingsFragment(private val plugin: Plugin, val nginxApi: NginxApi) :
     BottomSheetDialogFragment() {
 
@@ -25,28 +27,40 @@ class NginxSettingsFragment(private val plugin: Plugin, val nginxApi: NginxApi) 
         savedInstanceState: Bundle?
     ): View? {
         // Inflate the layout for this fragment
-        val id = plugin.resources!!.getIdentifier("nginx_settings", "layout", "com.lagradost")
+        val id = plugin.resources!!.getIdentifier("nginx_settings", "layout", packageName)
         val layout = plugin.resources!!.getLayout(id)
         return inflater.inflate(layout, container, false)
     }
 
     private fun <T : View> View.findView(name: String): T {
-        val id = plugin.resources!!.getIdentifier(name, "id", "com.lagradost")
+        val id = plugin.resources!!.getIdentifier(name, "id", packageName)
         return this.findViewById(id)
     }
 
     private fun getDrawable(name: String): Drawable? {
-        val id = plugin.resources!!.getIdentifier(name, "drawable", "com.lagradost")
+        val id = plugin.resources!!.getIdentifier(name, "drawable", packageName)
         return ResourcesCompat.getDrawable(plugin.resources!!, id, null)
     }
 
     private fun getString(name: String): String {
-        val id = plugin.resources!!.getIdentifier(name, "string", "com.lagradost.cloudstream3")
-        return this.getString(id)
+        val id = maxOf(
+            // Fuck it lets see if any works
+            plugin.resources!!.getIdentifier(name, "string", packageName),
+            plugin.resources!!.getIdentifier(name, "string", "$packageName.cloudstream3"),
+            this.context?.resources?.getIdentifier(name, "string", "$packageName.cloudstream3")
+                ?: 0,
+            this.context?.resources?.getIdentifier(name, "string", packageName) ?: 0,
+            this.activity?.resources?.getIdentifier(name, "string", "$packageName.cloudstream3") ?: 0,
+            this.activity?.resources?.getIdentifier(name, "string", packageName) ?: 0,
+        )
+        return if (id <= 0)
+            ""
+        else
+            this.getString(id)
     }
 
     private fun getAttr(name: String): Int {
-        return plugin.resources!!.getIdentifier(name, "attr", "com.lagradost.cloudstream3")
+        return plugin.resources!!.getIdentifier(name, "attr", packageName)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
