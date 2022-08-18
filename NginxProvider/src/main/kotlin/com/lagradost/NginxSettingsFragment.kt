@@ -29,20 +29,25 @@ class NginxSettingsFragment(private val plugin: Plugin, val nginxApi: NginxApi) 
         return inflater.inflate(layout, container, false)
     }
 
+    private fun <T : View> View.findView(name: String): T {
+        val id = plugin.resources!!.getIdentifier(name, "id", "com.lagradost")
+        return this.findViewById(id)
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val infoView = view.findViewWithTag<LinearLayout>("nginx_info")
-        val infoTextView = view.findViewWithTag<TextView>("info_main_text")
-        val infoSubTextView = view.findViewWithTag<TextView>("info_sub_text")
-        val infoImageView = view.findViewWithTag<ImageView>("nginx_info_imageview")
+        val infoView = view.findView<LinearLayout>("nginx_info")
+        val infoTextView = view.findView<TextView>("info_main_text")
+        val infoSubTextView = view.findView<TextView>("info_sub_text")
+        val infoImageView = view.findView<ImageView>("nginx_info_imageview")
 
         infoTextView.text = getString(nginx_info_title)
         infoSubTextView.text = getString(nginx_info_summary)
         infoImageView.setImageResource(nginx_question)
 
-        val loginView = view.findViewWithTag<LinearLayout>("nginx_login")
-        val loginTextView = view.findViewWithTag<TextView>("main_text")
-        val loginImageView = view.findViewWithTag<ImageView>("nginx_login_imageview")
+        val loginView = view.findView<LinearLayout>("nginx_login")
+        val loginTextView = view.findView<TextView>("main_text")
+        val loginImageView = view.findView<ImageView>("nginx_login_imageview")
         loginImageView.setImageResource(nginx)
 
         // object : View.OnClickListener is required to make it compile because otherwise it used invoke-customs

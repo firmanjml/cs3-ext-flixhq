@@ -2,20 +2,20 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:tag="@+id/settings_root"
+    android:id="@+id/settings_root"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical">
 
     <LinearLayout
-        android:tag="@+id/nginx_login"
+        android:id="@+id/nginx_login"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:padding="20dp">
 
         <ImageView
-            android:tag="@+id/nginx_login_imageview"
+            android:id="@+id/nginx_login_imageview"
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:layout_gravity="start|center_vertical"
@@ -34,7 +34,7 @@
             <!--                android:orientation="horizontal">-->
 
             <TextView
-                android:tag="@+id/main_text"
+                android:id="@+id/main_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="16sp" />
@@ -51,14 +51,14 @@
 
 
     <LinearLayout
-        android:tag="@+id/nginx_info"
+        android:id="@+id/nginx_info"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:padding="20dp">
 
         <ImageView
-            android:tag="@+id/nginx_info_imageview"
+            android:id="@+id/nginx_info_imageview"
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:layout_gravity="start|center_vertical"
@@ -77,14 +77,14 @@
                 android:orientation="horizontal">
 
                 <TextView
-                    android:tag="@+id/info_main_text"
+                    android:id="@+id/info_main_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textSize="16sp" />
             </LinearLayout>
 
             <TextView
-                android:tag="@+id/info_sub_text"
+                android:id="@+id/info_sub_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="12sp" />
