@@ -41,12 +41,12 @@ class NginxSettingsFragment(private val plugin: Plugin, val nginxApi: NginxApi) 
     }
 
     private fun getString(name: String): String {
-        val id = this.resources.getIdentifier(name, "string", "com.lagradost.cloudstream3")
+        val id = plugin.resources!!.getIdentifier(name, "string", "com.lagradost")
         return this.getString(id)
     }
 
     private fun getAttr(name: String): Int {
-        return this.resources.getIdentifier(name, "attr", "com.lagradost.cloudstream3")
+        return plugin.resources!!.getIdentifier(name, "attr", "com.lagradost")
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -61,7 +61,8 @@ class NginxSettingsFragment(private val plugin: Plugin, val nginxApi: NginxApi) 
         infoImageView.setImageDrawable(
             getDrawable("nginx_question")
         )
-        infoImageView.imageTintList = ColorStateList.valueOf(view.context.colorFromAttribute(getAttr("white")))
+        infoImageView.imageTintList =
+            ColorStateList.valueOf(view.context.colorFromAttribute(getAttr("white")))
 
         val loginView = view.findView<LinearLayout>("nginx_login")
         val loginTextView = view.findView<TextView>("main_text")
