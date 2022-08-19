@@ -11,7 +11,7 @@
  class NginxApi(index: Int) : InAppAuthAPIManager(index) {
      override val name = "Nginx"
      override val idPrefix = "nginx"
-     override val icon = R.drawable.nginx
+     override val icon = R.drawable.ic_baseline_extension_24
      override val requiresUsername = true
      override val requiresPassword = true
      override val requiresServer = true
