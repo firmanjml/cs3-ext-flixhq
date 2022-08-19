@@ -54,8 +54,8 @@ class NginxSettingsFragment(private val plugin: Plugin, val nginxApi: NginxApi) 
         val infoSubTextView = view.findView<TextView>("info_sub_text")
         val infoImageView = view.findView<ImageView>("nginx_info_imageview")
 
-        infoTextView.text = getString("nginx_info_title")
-        infoSubTextView.text = getString("nginx_info_summary")
+        infoTextView.text = getString("nginx_info_title") ?: "Nginx"
+        infoSubTextView.text = getString("nginx_info_summary") ?: ""
         infoImageView.setImageDrawable(getDrawable("nginx_question"))
         infoImageView.imageTintList =
             ColorStateList.valueOf(view.context.colorFromAttribute(R.attr.white))
@@ -75,7 +75,7 @@ class NginxSettingsFragment(private val plugin: Plugin, val nginxApi: NginxApi) 
         })
 
 
-        loginTextView.text = getString("login_format").format(nginxApi.name, getString("account"))
+        loginTextView.text = view.context.resources.getString(R.string.login_format).format(nginxApi.name, getString("account"))
         loginView.setOnClickListener(object : View.OnClickListener {
             override fun onClick(v: View?) {
                 val info = nginxApi.loginInfo()
