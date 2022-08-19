@@ -26,5 +26,5 @@ cloudstream {
     )
 
 
-    iconUrl = "https://www.google.com/s2/favicons?domain=trailers.to&sz=24"
+    iconUrl = "https://www.google.com/s2/favicons?domain=trailers.to&sz=%size%"
 }

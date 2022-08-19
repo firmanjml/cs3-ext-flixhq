@@ -24,5 +24,5 @@ cloudstream {
         "TvSeries",
     )
 
-    iconUrl = "https://www.google.com/s2/favicons?domain=www.wcostream.com&sz=24"
+    iconUrl = "https://www.google.com/s2/favicons?domain=www.wcostream.com&sz=%size%"
 }

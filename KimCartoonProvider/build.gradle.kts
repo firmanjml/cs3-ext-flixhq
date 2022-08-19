@@ -21,5 +21,5 @@ cloudstream {
         "Cartoon",
     )
 
-    iconUrl = "https://www.google.com/s2/favicons?domain=kimcartoon.li&sz=24"
+    iconUrl = "https://www.google.com/s2/favicons?domain=kimcartoon.li&sz=%size%"
 }

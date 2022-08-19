@@ -23,5 +23,5 @@ cloudstream {
         "Documentary",
     )
 
-    iconUrl = "https://www.google.com/s2/favicons?domain=ihavenotv.com&sz=24"
+    iconUrl = "https://www.google.com/s2/favicons?domain=ihavenotv.com&sz=%size%"
 }
