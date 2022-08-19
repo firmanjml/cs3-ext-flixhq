@@ -75,7 +75,9 @@ class NginxSettingsFragment(private val plugin: Plugin, val nginxApi: NginxApi) 
         })
 
 
-        loginTextView.text = view.context.resources.getString(R.string.login_format).format(nginxApi.name, getString("account"))
+        loginTextView.text = view.context.resources.getString(R.string.login_format).format(
+            nginxApi.name,
+            view.context.resources.getString(R.string.account))
         loginView.setOnClickListener(object : View.OnClickListener {
             override fun onClick(v: View?) {
                 val info = nginxApi.loginInfo()
