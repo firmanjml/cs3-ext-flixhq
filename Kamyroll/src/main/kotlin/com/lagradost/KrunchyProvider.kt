@@ -1,14 +1,13 @@
 package com.lagradost
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.json.JsonMapper
-import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.lagradost.cloudstream3.*
-import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.utils.AppUtils.parseJson
+import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.M3u8Helper
+import com.lagradost.cloudstream3.utils.Qualities
+import com.lagradost.cloudstream3.utils.getQualityFromName
 import com.lagradost.nicehttp.NiceResponse
-import com.lagradost.nicehttp.Session
 import org.jsoup.Jsoup
 import java.net.URI
 import java.util.*
@@ -26,7 +25,7 @@ class KrunchyGeoBypasser {
             "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36".toAscii()
         )
         var sessionId: String? = null
-        val session = Session(app.baseClient)
+        val session = HttpSession()
     }
 
     data class KrunchySession(
@@ -68,8 +67,6 @@ class KrunchyProvider : MainAPI() {
     companion object {
         val crUnblock = KrunchyGeoBypasser()
         val episodeNumRegex = Regex("""Episode (\d+)""")
-        val mapper: JsonMapper = JsonMapper.builder().addModule(KotlinModule())
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false).build()
     }
 
     override var mainUrl = "http://www.crunchyroll.com"

@@ -1,5 +1,5 @@
 // use an integer for version numbers
-version = 1
+version = 2
 
 
 cloudstream {
@@ -19,5 +19,4 @@ cloudstream {
     status = 1 // will be 3 if unspecified
     tvTypes = listOf("AnimeMovie", "Anime", "OVA")
     iconUrl = "https://www.google.com/s2/favicons?domain=crunchyroll.com&sz=%size%"
-
 }
