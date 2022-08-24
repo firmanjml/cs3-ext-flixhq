@@ -1,7 +1,6 @@
 package com.lagradost
 
 import com.lagradost.cloudstream3.*
-import com.lagradost.cloudstream3.extractors.Vidstream
 //import com.lagradost.cloudstream3.animeproviders.GogoanimeProvider.Companion.extractVidstream
 //import com.lagradost.cloudstream3.extractors.XStreamCdn
 //import com.lagradost.cloudstream3.extractors.helper.AsianEmbedHelper
@@ -214,7 +213,7 @@ class WatchAsianProvider : MainAPI() {
             val url = fixUrl(item.trim())
             //Log.i(this.name, "Result => (url) $url")
             when {
-                url.startsWith("https://asianembed.io") || url.startsWith("https://asianload.io") -> {
+                url.startsWith("https://asianembed.io") || url.startsWith("https://asianload.io") || url.contains("/streaming.php?") -> {
                     val iv = "9262859232435825"
                     val secretKey = "93422192433952489752342908585752"
                     Vidstream.extractVidstream(

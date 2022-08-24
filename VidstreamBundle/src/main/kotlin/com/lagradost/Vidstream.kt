@@ -1,7 +1,6 @@
-package com.lagradost.cloudstream3.extractors
+package com.lagradost
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.lagradost.MultiQuality
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.AcraApplication.Companion.getKey
 import com.lagradost.cloudstream3.mvvm.safeApiCall
