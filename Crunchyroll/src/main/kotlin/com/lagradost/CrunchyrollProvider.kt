@@ -2,14 +2,15 @@ package com.lagradost
 
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
+import com.lagradost.cloudstream3.APIHolder.capitalize
 import com.lagradost.cloudstream3.utils.AppUtils.parseJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.M3u8Helper
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.utils.getQualityFromName
 import com.lagradost.nicehttp.NiceResponse
+import kotlinx.coroutines.delay
 import org.jsoup.Jsoup
-import java.net.URI
 import java.util.*
 
 private fun String.toAscii() = this.map { it.code }.joinToString()
@@ -18,14 +19,16 @@ class KrunchyGeoBypasser {
     companion object {
         const val BYPASS_SERVER = "https://cr-unblocker.us.to/start_session"
         val headers = mapOf(
-            "Accept" to "*/*",
-            "Accept-Encoding" to "gzip, deflate",
-            "Connection" to "keep-alive",
-            "Referer" to "https://google.com/",
-            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36".toAscii()
+            "accept" to "*/*",
+//            "Accept-Encoding" to "gzip, deflate",
+            "connection" to "keep-alive",
+//            "Referer" to "https://google.com/",
+            "user-agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36".toAscii()
         )
         var sessionId: String? = null
-        val session = HttpSession()
+
+        //        val interceptor = CookieInterceptor()
+        val session = CustomSession(app.baseClient)
     }
 
     data class KrunchySession(
@@ -54,6 +57,8 @@ class KrunchyGeoBypasser {
     private suspend fun autoLoadSession(): Boolean {
         if (sessionId != null) return true
         getSessionId()
+        // Do not spam the api!
+        delay(3000)
         return autoLoadSession()
     }
 
@@ -69,6 +74,7 @@ class KrunchyProvider : MainAPI() {
         val episodeNumRegex = Regex("""Episode (\d+)""")
     }
 
+    // Do not make https! It will fail!
     override var mainUrl = "http://www.crunchyroll.com"
     override var name: String = "Crunchyroll"
     override var lang = "en"
@@ -87,13 +93,15 @@ class KrunchyProvider : MainAPI() {
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        println("GETMAINPAGE ")
         val categoryData = request.data
+
         val paginated = categoryData.endsWith("=")
         val pagedLink = if (paginated) categoryData + page else categoryData
         val items = mutableListOf<HomePageList>()
 
         // Only fetch page at first-time load of homepage
-        if (page <= 1) {
+        if (page <= 1 && request.name == "Popular") {
             val doc = Jsoup.parse(crUnblock.geoBypassRequest(mainUrl).text)
             val featured = doc.select(".js-featured-show-list > li").mapNotNull { anime ->
                 val url =
@@ -145,7 +153,9 @@ class KrunchyProvider : MainAPI() {
                     )
                 )
             }
-            items.add(HomePageList("Featured", featured))
+            if (featured.isNotEmpty()) {
+                items.add(HomePageList("Featured", featured))
+            }
         }
 
         if (paginated || !paginated && page <= 1) {
@@ -176,25 +186,23 @@ class KrunchyProvider : MainAPI() {
         }
 
         if (items.isNotEmpty()) {
-            return newHomePageResponse(items.toList()
-            )
+            return newHomePageResponse(items)
         }
         throw ErrorLoadingException()
     }
 
-    private fun getCloseMatches(sequence: String, items: Collection<String>): ArrayList<String> {
-        val closeMatches = ArrayList<String>()
+    // Maybe fuzzy match in the future
+    private fun getCloseMatches(sequence: String, items: Collection<String>): List<String> {
         val a = sequence.trim().lowercase()
 
-        for (item in items) {
+        return items.mapNotNull { item ->
             val b = item.trim().lowercase()
-            if (b.contains(a)) {
-                closeMatches.add(item)
-            } else if (a.contains(b)) {
-                closeMatches.add(item)
-            }
+            if (b.contains(a))
+                item
+            else if (a.contains(b))
+                item
+            else null
         }
-        return closeMatches
     }
 
     private data class CrunchyAnimeData(
@@ -261,7 +269,7 @@ class KrunchyProvider : MainAPI() {
         }
 
         val genres = soup.select(".large-margin-bottom > ul:nth-child(2) li:nth-child(2) a")
-            .map { it.text() }
+            .map { it.text().capitalize() }
         val year = genres.filter { it.toIntOrNull() != null }.map { it.toInt() }.sortedBy { it }
             .getOrNull(0)
 
@@ -364,7 +372,19 @@ class KrunchyProvider : MainAPI() {
         @JsonProperty("url") val url: String,
         @JsonProperty("resolution") val resolution: String?,
         @JsonProperty("title") var title: String?
-    )
+    ) {
+        fun title(): String {
+            return when {
+                this.hardsubLang == "enUS" && this.audioLang == "jaJP" -> "Hardsub (English)"
+                this.hardsubLang == "esLA" && this.audioLang == "jaJP" -> "Hardsub (Latino)"
+                this.hardsubLang == "esES" && this.audioLang == "jaJP" -> "Hardsub (Español España)"
+                this.audioLang == "esLA" -> "Latino"
+                this.audioLang == "esES" -> "Español España"
+                this.audioLang == "enUS" -> "English (US)"
+                else -> "RAW"
+            }
+        }
+    }
 
     data class KrunchyVideo(
         @JsonProperty("streams") val streams: List<Streams>,
@@ -387,6 +407,7 @@ class KrunchyProvider : MainAPI() {
         if (!dat.isNullOrEmpty()) {
             val json = parseJson<KrunchyVideo>(dat)
             val streams = ArrayList<Streams>()
+
             for (stream in json.streams) {
                 if (
                     listOf(
@@ -408,21 +429,13 @@ class KrunchyProvider : MainAPI() {
                             "enUS",
                             null
                         ).contains(stream.hardsubLang))
-                        && URI(stream.url).path.endsWith(".m3u")
-
+//                        && URI(stream.url).path.endsWith(".m3u")
                     ) {
-                        stream.title =
-                            if (stream.hardsubLang == "enUS" && stream.audioLang == "jaJP") "Hardsub (English)"
-                            else if (stream.hardsubLang == "esLA" && stream.audioLang == "jaJP") "Hardsub (Latino)"
-                            else if (stream.hardsubLang == "esES" && stream.audioLang == "jaJP") "Hardsub (Español España)"
-                            else if (stream.audioLang == "esLA") "Latino"
-                            else if (stream.audioLang == "esES") "Español España"
-                            else if (stream.audioLang == "enUS") "English (US)"
-                            else "RAW"
+                        stream.title = stream.title()
                         streams.add(stream)
                     }
-                    //Premium eps
-                    if (stream.format == "trailer_hls" && listOf(
+                    // Premium eps
+                    else if (stream.format == "trailer_hls" && listOf(
                             "jaJP",
                             "esLA",
                             "esES",
@@ -430,34 +443,29 @@ class KrunchyProvider : MainAPI() {
                         ).contains(stream.audioLang) &&
                         (listOf("esLA", "esES", "enUS", null).contains(stream.hardsubLang))
                     ) {
-                        stream.title =
-                            if (stream.hardsubLang == "enUS" && stream.audioLang == "jaJP") "Hardsub (English)"
-                            else if (stream.hardsubLang == "esLA" && stream.audioLang == "jaJP") "Hardsub (Latino)"
-                            else if (stream.hardsubLang == "esES" && stream.audioLang == "jaJP") "Hardsub (Español España)"
-                            else if (stream.audioLang == "esLA") "Latino"
-                            else if (stream.audioLang == "esES") "Español España"
-                            else if (stream.audioLang == "enUS") "English (US)"
-                            else "RAW"
+                        stream.title = stream.title()
                         streams.add(stream)
                     }
                 }
             }
+
             streams.apmap { stream ->
                 if (stream.url.contains("m3u8") && stream.format!!.contains("adaptive")) {
-                    hlsHelper.m3u8Generation(M3u8Helper.M3u8Stream(stream.url, null), false).apmap {
-                        callback(
-                            ExtractorLink(
-                                "Crunchyroll",
-                                "Crunchy - ${stream.title} - ${it.quality}p",
-                                it.streamUrl,
-                                "",
-                                getQualityFromName(it.quality.toString()),
-                                true
+                    hlsHelper.m3u8Generation(M3u8Helper.M3u8Stream(stream.url, null), false)
+                        .forEach {
+                            callback(
+                                ExtractorLink(
+                                    "Crunchyroll",
+                                    "Crunchy - ${stream.title}",
+                                    it.streamUrl,
+                                    "",
+                                    getQualityFromName(it.quality.toString()),
+                                    true
+                                )
                             )
-                        )
-                    }
+                        }
                 } else if (stream.format == "trailer_hls") {
-                    val premiumstream = stream.url
+                    val premiumStream = stream.url
                         .replace("\\/", "/")
                         .replace(Regex("\\/clipFrom.*?index.m3u8"), "").replace("'_,'", "'_'")
                         .replace(stream.url.split("/")[2], "fy.v.vrv.co")
@@ -465,7 +473,7 @@ class KrunchyProvider : MainAPI() {
                         ExtractorLink(
                             this.name,
                             "Crunchy - ${stream.title} ★",
-                            premiumstream,
+                            premiumStream,
                             "",
                             Qualities.Unknown.value,
                             false
@@ -473,7 +481,7 @@ class KrunchyProvider : MainAPI() {
                     )
                 } else null
             }
-            json.subtitles.apmap {
+            json.subtitles.forEach {
                 val langclean = it.language.replace("esLA", "Spanish")
                     .replace("enUS", "English")
                     .replace("esES", "Spanish (Spain)")
