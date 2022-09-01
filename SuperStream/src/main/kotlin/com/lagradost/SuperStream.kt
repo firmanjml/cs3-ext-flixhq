@@ -307,6 +307,7 @@ class SuperStream : MainAPI() {
         @JsonProperty("trailer_url") val trailerUrl: String? = null,
         @JsonProperty("imdb_link") val imdbLink: String? = null,
         @JsonProperty("box_type") val boxType: Int? = null,
+        @JsonProperty("recommend") val recommend: List<Data> = listOf(),
     )
 
     private data class MovieDataProp(
@@ -469,6 +470,7 @@ class SuperStream : MainAPI() {
                     null
                 ),
             ) {
+                this.recommendations = data.recommend.mapNotNull { it.toSearchResponse() }
                 this.posterUrl = data.posterOrg ?: data.poster
                 this.year = data.year
                 this.plot = data.description
