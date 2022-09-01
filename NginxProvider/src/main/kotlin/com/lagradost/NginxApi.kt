@@ -15,7 +15,7 @@
      override val requiresUsername = true
      override val requiresPassword = true
      override val requiresServer = true
-     override val createAccountUrl = "https://www.sarlays.com/use-nginx-with-cloudstream/"
+     override val createAccountUrl = "https://recloudstream.github.io/docs/users/use-nginx.md"
 
      companion object {
          const val NGINX_USER_KEY: String = "nginx_user"
