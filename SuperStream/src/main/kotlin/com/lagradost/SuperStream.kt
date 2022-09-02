@@ -21,9 +21,6 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import kotlin.math.roundToInt
 
-const val TYPE_SERIES = 2
-const val TYPE_MOVIES = 1
-
 class SuperStream : MainAPI() {
     override var name = "SuperStream"
     override val hasMainPage = true
@@ -34,6 +31,21 @@ class SuperStream : MainAPI() {
         TvType.Anime,
         TvType.AnimeMovie,
     )
+
+    private enum class ResponseTypes(val value: Int) {
+        Series(2),
+        Movies(1);
+
+        fun toTvType(): TvType {
+            return if (this == Series) TvType.TvSeries else TvType.Movie
+        }
+
+        companion object {
+            fun getResponseType(value: Int?): ResponseTypes {
+                return values().firstOrNull { it.value == value } ?: Movies
+            }
+        }
+    }
 
     override val instantLinkLoading = true
 
@@ -253,7 +265,20 @@ class SuperStream : MainAPI() {
         @JsonProperty("year") val year: Int? = null,
         @JsonProperty("imdb_rating") val imdbRating: String? = null,
         @JsonProperty("quality_tag") val qualityTag: String? = null,
-    )
+    ) {
+        fun toSearchResponse(api: MainAPI): MovieSearchResponse? {
+            return api.newMovieSearchResponse(
+                this.title ?: "",
+                LoadData(this.id ?: return null, this.boxType).toJson(),
+                ResponseTypes.getResponseType(this.boxType).toTvType(),
+                false
+            ) {
+                posterUrl = this@Data.posterOrg ?: this@Data.poster
+                year = this@Data.year
+                quality = getQualityFromString(this@Data.qualityTag?.replace("-", "") ?: "")
+            }
+        }
+    }
 
     private data class MainData(
         @JsonProperty("data") val data: ArrayList<Data> = arrayListOf()
@@ -265,17 +290,7 @@ class SuperStream : MainAPI() {
             // Originally 8 pagelimit
             """{"childmode":"$hideNsfw","app_version":"11.5","appid":"$appId","module":"Search3","channel":"Website","page":"1","lang":"en","type":"all","keyword":"$query","pagelimit":"20","expired_date":"${getExpiryDate()}","platform":"android"}"""
         val searchResponse = parseJson<MainData>(queryApi(apiQuery).text).data.mapNotNull {
-            val type = if (it.boxType == 1) TvType.Movie else TvType.TvSeries
-            newMovieSearchResponse(
-                name = it.title ?: return@mapNotNull null,
-                url = LoadData(it.id ?: return@mapNotNull null, it.boxType).toJson(),
-                type = type,
-                fix = false
-            ) {
-                posterUrl = it.posterOrg ?: it.poster
-                year = it.year
-                quality = getQualityFromString(it.qualityTag?.replace("-", "") ?: "")
-            }
+            it.toSearchResponse(this)
         }
         return searchResponse
     }
@@ -451,7 +466,7 @@ class SuperStream : MainAPI() {
         val loadData = parseJson<LoadData>(url)
         // val module = if(type === "TvType.Movie") "Movie_detail" else "*tv series module*"
 
-        val isMovie = loadData.type == TYPE_MOVIES
+        val isMovie = loadData.type == ResponseTypes.Movies.value
         val hideNsfw = if (settingsForProvider.enableAdult) 0 else 1
         if (isMovie) { // 1 = Movie
             val apiQuery =
@@ -465,12 +480,13 @@ class SuperStream : MainAPI() {
                 TvType.Movie,
                 LinkData(
                     data.id ?: throw RuntimeException("No movie ID"),
-                    TYPE_MOVIES,
+                    ResponseTypes.Movies.value,
                     null,
                     null
                 ),
             ) {
-                this.recommendations = data.recommend.mapNotNull { it.toSearchResponse() }
+                this.recommendations =
+                    data.recommend.mapNotNull { it.toSearchResponse(this@SuperStream) }
                 this.posterUrl = data.posterOrg ?: data.poster
                 this.year = data.year
                 this.plot = data.description
@@ -499,7 +515,7 @@ class SuperStream : MainAPI() {
                     Episode(
                         LinkData(
                             it.tid ?: it.id ?: return@mapNotNull null,
-                            TYPE_SERIES,
+                            ResponseTypes.Series.value,
                             it.season,
                             it.episode
                         ).toJson(),
@@ -592,10 +608,8 @@ class SuperStream : MainAPI() {
     )
 
     private data class SubtitleList(
-
         @JsonProperty("language") val language: String? = null,
         @JsonProperty("subtitles") val subtitles: ArrayList<Subtitles> = arrayListOf()
-
     )
 
     private data class PrivateSubtitleData(
@@ -629,7 +643,7 @@ class SuperStream : MainAPI() {
         val parsed = parseJson<LinkData>(data)
 
         // No childmode when getting links
-        val query = if (parsed.type == TYPE_MOVIES) {
+        val query = if (parsed.type == ResponseTypes.Movies.value) {
             """{"childmode":"0","uid":"","app_version":"11.5","appid":"$appId","module":"Movie_downloadurl_v3","channel":"Website","mid":"${parsed.id}","lang":"","expired_date":"${getExpiryDate()}","platform":"android","oss":"1","group":""}"""
         } else {
             val episode = parsed.episode ?: throw RuntimeException("No episode number!")
@@ -645,7 +659,7 @@ class SuperStream : MainAPI() {
         // Should really run this query for every link :(
         val fid = linkData.data?.list?.firstOrNull { it.fid != null }?.fid
 
-        val subtitleQuery = if (parsed.type == TYPE_MOVIES) {
+        val subtitleQuery = if (parsed.type == ResponseTypes.Movies.value) {
             """{"childmode":"0","fid":"$fid","uid":"","app_version":"11.5","appid":"$appId","module":"Movie_srt_list_v2","channel":"Website","mid":"${parsed.id}","lang":"en","expired_date":"${getExpiryDate()}","platform":"android"}"""
         } else {
             """{"childmode":"0","fid":"$fid","app_version":"11.5","module":"TV_srt_list_v2","channel":"Website","episode":"${parsed.episode}","expired_date":"${getExpiryDate()}","platform":"android","tid":"${parsed.id}","uid":"","appid":"$appId","season":"${parsed.season}","lang":"en"}"""
