@@ -7,11 +7,9 @@ import com.lagradost.cloudstream3.app
 import com.lagradost.cloudstream3.base64Decode
 import com.lagradost.cloudstream3.metaproviders.TmdbLink
 import com.lagradost.cloudstream3.metaproviders.TmdbProvider
-import com.lagradost.cloudstream3.network.WebViewResolver
 import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
-import com.lagradost.cloudstream3.utils.Qualities
-import com.lagradost.cloudstream3.utils.getQualityFromName
+import com.lagradost.cloudstream3.utils.loadExtractor
 
 class SuperembedProvider : TmdbProvider() {
     override var mainUrl = "https://seapi.link"
@@ -34,9 +32,9 @@ class SuperembedProvider : TmdbProvider() {
         val response = tryParseJson<ApiResponse>(document) ?: return false
 
         response.results.forEach {
-            it.toExtractorLink()?.let { it1 ->
-                Log.d("supaembed", it1.url)
-                callback.invoke(it1)
+            it.getIframeContents()?.let { it1 ->
+                Log.d("supaembed", it1)
+                loadExtractor(it1, subtitleCallback, callback)
             }
         }
 
@@ -54,23 +52,11 @@ class SuperembedProvider : TmdbProvider() {
         val size: Int,
         val url: String
     ) {
-        private suspend fun getIframeContents(): String? {
+        suspend fun getIframeContents(): String? {
             val document = app.get(url).text
             val regex = "<iframe[^+]+\\+(?:window\\.)?atob\\(['\"]([-A-Za-z0-9+/=]+)".toRegex()
             val encoded = regex.find(document)?.groupValues?.get(1) ?: return null
             return base64Decode(encoded)
-        }
-
-        suspend fun toExtractorLink(): ExtractorLink? {
-            val iframeLink = getIframeContents() ?: return null
-
-            return ExtractorLink(
-                title,
-                server,
-                iframeLink,
-                "",
-                getQualityFromName(quality)
-            )
         }
     }
 }
