@@ -1,6 +1,5 @@
 package com.lagradost
 
-import android.util.Log
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.metaproviders.TmdbLink
 import com.lagradost.cloudstream3.metaproviders.TmdbProvider
@@ -33,7 +32,6 @@ class SuperembedProvider : TmdbProvider() {
 
         response.results.forEach {
             it.getIframeContents()?.let { it1 ->
-                Log.d("supaembed", it1)
                 loadExtractor(it1, subtitleCallback, callback)
             }
         }
