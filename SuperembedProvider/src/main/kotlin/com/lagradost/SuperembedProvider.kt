@@ -60,6 +60,7 @@ class SuperembedProvider : TmdbProvider() {
         }
     }
 
+    /*
     private object CaptchaSolver {
         private enum class Gender { Female, Male }
         private suspend fun predictFace(url: String): Gender? {
@@ -87,5 +88,5 @@ class SuperembedProvider : TmdbProvider() {
             val fn_index: Int = 0,
             val session_hash: String = "aaaaaaaaaaa"
         )
-    }
+    }*/
 }
