@@ -624,10 +624,12 @@ class SuperStream : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ): Boolean {
         fun LinkList.toExtractorLink(): ExtractorLink? {
+            if (this.path.isNullOrBlank()) return null
+
             return ExtractorLink(
                 this@SuperStream.name,
-                this.filename ?: "",
-                this.path?.replace("\\/", "") ?: return null,
+                "${this.filename ?: ""} ${this.size ?: ""}".trim(),
+                this.path.replace("\\/", ""),
                 "",
                 getQualityFromName(this.quality),
             )
