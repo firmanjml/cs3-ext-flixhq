@@ -628,7 +628,7 @@ class SuperStream : MainAPI() {
 
             return ExtractorLink(
                 this@SuperStream.name,
-                "${this.filename ?: ""} ${this.size ?: ""}".trim(),
+                this.size ?: "",
                 this.path.replace("\\/", ""),
                 "",
                 getQualityFromName(this.quality),
