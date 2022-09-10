@@ -1,13 +1,13 @@
 // use an integer for version numbers
-version = 1
+version = 4
 
 
 cloudstream {
     language = "en"
     // All of these properties are optional, you can safely remove them
 
-    // description = "Lorem Ipsum"
-    // authors = listOf("Cloudburst")
+    description = "Uses TMDB"
+    authors = listOf("Cloudburst")
 
     /**
      * Status int as the following:
@@ -18,9 +18,9 @@ cloudstream {
      * */
     status = 0 // will be 3 if unspecified
     tvTypes = listOf(
-        "Anime",
-        "OVA",
+        "TvSeries",
+        "Movie",
     )
 
-    iconUrl = "https://www.google.com/s2/favicons?domain=9anime.id&sz=%size%"
+    iconUrl = "https://www.google.com/s2/favicons?domain=www.superembed.stream&sz=%size%"
 }

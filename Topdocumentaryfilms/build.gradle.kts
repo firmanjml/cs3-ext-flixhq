@@ -7,7 +7,7 @@ cloudstream {
     // All of these properties are optional, you can safely remove them
 
     // description = "Lorem Ipsum"
-    // authors = listOf("Cloudburst")
+     authors = listOf("Hexated")
 
     /**
      * Status int as the following:
@@ -16,11 +16,8 @@ cloudstream {
      * 2: Slow
      * 3: Beta only
      * */
-    status = 0 // will be 3 if unspecified
-    tvTypes = listOf(
-        "Anime",
-        "OVA",
-    )
+    status = 1 // will be 3 if unspecified
+    tvTypes = listOf("Documentary")
 
-    iconUrl = "https://www.google.com/s2/favicons?domain=9anime.id&sz=%size%"
+    iconUrl = "https://www.google.com/s2/favicons?domain=topdocumentaryfilms.com&sz=%size%"
 }
