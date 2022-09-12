@@ -8,9 +8,7 @@ import com.lagradost.cloudstream3.utils.AppUtils.parseJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.M3u8Helper
 import com.lagradost.cloudstream3.utils.Qualities
-import org.jsoup.Jsoup
-import org.mozilla.javascript.Context
-import org.mozilla.javascript.Scriptable
+import com.lagradost.cloudstream3.utils.getQualityFromName
 import java.net.URI
 import java.net.URLDecoder
 
@@ -58,13 +56,7 @@ class AllAnimeProvider : MainAPI() {
         @JsonProperty("status") val status: String?,
     )
 
-    private data class AvailableEpisodes(
-        @JsonProperty("sub") val sub: Int,
-        @JsonProperty("dub") val dub: Int,
-        @JsonProperty("raw") val raw: Int
-    )
-
-    private data class AiredStart(
+    data class AiredStart(
         @JsonProperty("year") val year: Int,
         @JsonProperty("month") val month: Int,
         @JsonProperty("date") val date: Int
@@ -85,11 +77,11 @@ class AllAnimeProvider : MainAPI() {
     )
 
     data class RandomMain(
-        @JsonProperty("data") var data: DataRan? = DataRan()
+        @JsonProperty("data") val data: DataRan? = DataRan()
     )
 
     data class DataRan(
-        @JsonProperty("queryRandomRecommendation") var queryRandomRecommendation: ArrayList<QueryRandomRecommendation> = arrayListOf()
+        @JsonProperty("queryRandomRecommendation") val queryRandomRecommendation: ArrayList<QueryRandomRecommendation> = arrayListOf()
     )
 
     data class QueryRandomRecommendation(
@@ -104,7 +96,7 @@ class AllAnimeProvider : MainAPI() {
         @JsonProperty("__typename") val _typename: String? = null
     )
 
-    override suspend fun getMainPage(page: Int, request : MainPageRequest): HomePageResponse {
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val items = ArrayList<HomePageList>()
         val urls = listOf(
 //            Pair(
@@ -188,29 +180,99 @@ class AllAnimeProvider : MainAPI() {
         @JsonProperty("raw") val raw: List<String>
     )
 
+    data class PageDataRoot(
+        @JsonProperty("data") val data: PageData? = PageData()
+    )
+
+    data class PageData(
+        @JsonProperty("show") val show: Show? = Show()
+    )
+
+    data class Show(
+        @JsonProperty("_id") val Id: String? = null,
+        @JsonProperty("name") val name: String? = null,
+        @JsonProperty("description") val description: String? = null,
+        @JsonProperty("thumbnail") val thumbnail: String? = null,
+        @JsonProperty("thumbnails") val thumbnails: ArrayList<String> = arrayListOf(),
+//  @JsonProperty("lastEpisodeInfo"         ) val lastEpisodeInfo         : LastEpisodeInfo?         = LastEpisodeInfo(),
+//  @JsonProperty("lastEpisodeDate"         ) val lastEpisodeDate         : LastEpisodeDate?         = LastEpisodeDate(),
+        @JsonProperty("type") val type: String? = null,
+        @JsonProperty("genres") val genres: ArrayList<String> = arrayListOf(),
+        @JsonProperty("score") val score: Double? = null,
+        @JsonProperty("status") val status: String? = null,
+//  @JsonProperty("season"                  ) val season                  : Season?                  = Season(),
+        @JsonProperty("altNames") val altNames: ArrayList<String> = arrayListOf(),
+        @JsonProperty("averageScore") val averageScore: Int? = null,
+        @JsonProperty("rating") val rating: String? = null,
+        @JsonProperty("episodeCount") val episodeCount: String? = null,
+        @JsonProperty("episodeDuration") val episodeDuration: String? = null,
+        @JsonProperty("broadcastInterval") val broadcastInterval: String? = null,
+        @JsonProperty("banner") val banner: String? = null,
+//  @JsonProperty("airedEnd"                ) val airedEnd                : AiredEnd?                = AiredEnd(),
+        @JsonProperty("airedStart") val airedStart: AiredStart? = null,
+        @JsonProperty("studios") val studios: ArrayList<String> = arrayListOf(),
+        @JsonProperty("countryOfOrigin") val countryOfOrigin: String? = null,
+        @JsonProperty("characters") val characters: ArrayList<Characters> = arrayListOf(),
+//  @JsonProperty("availableEpisodesDetail" ) val availableEpisodesDetail : AvailableEpisodesDetail? = AvailableEpisodesDetail(),
+        @JsonProperty("availableEpisodes") val availableEpisodes: AvailableEpisodes? = null,
+        @JsonProperty("prevideos") val prevideos: ArrayList<String> = arrayListOf(),
+        @JsonProperty("nameOnlyString") val nameOnlyString: String? = null,
+//  @JsonProperty("relatedShows"            ) val relatedShows            : ArrayList<RelatedShows>  = arrayListOf(),
+//  @JsonProperty("relatedMangas"           ) val relatedMangas           : ArrayList<RelatedMangas> = arrayListOf(),
+//  @JsonProperty("musics"                  ) val musics                  : ArrayList<Musics>        = arrayListOf(),
+        @JsonProperty("isAdult") val isAdult: Boolean? = null,
+        @JsonProperty("tags") val tags: ArrayList<String> = arrayListOf(),
+//  @JsonProperty("pageStatus"              ) val pageStatus              : PageStatus?              = PageStatus(),
+        @JsonProperty("__typename") val _typename: String? = null
+    )
+
+    data class AvailableEpisodes(
+        @JsonProperty("sub") val sub: Int,
+        @JsonProperty("dub") val dub: Int,
+        @JsonProperty("raw") val raw: Int
+    )
+
+    data class Characters(
+        @JsonProperty("role") val role: String? = null,
+        @JsonProperty("name") val name: Name? = Name(),
+        @JsonProperty("image") val image: Image? = Image(),
+        @JsonProperty("aniListId") val aniListId: Int? = null,
+        @JsonProperty("voiceActors") val voiceActors: ArrayList<VoiceActors> = arrayListOf()
+    )
+
+    data class Name(
+        @JsonProperty("full") val full: String? = null,
+        @JsonProperty("native") val native: String? = null
+    )
+
+    data class Image(
+        @JsonProperty("large") val large: String? = null,
+        @JsonProperty("medium") val medium: String? = null
+    )
+
+    data class VoiceActors(
+        @JsonProperty("language") val language: String? = null,
+        @JsonProperty("aniListId") val aniListId: Int? = null
+    )
+
+    data class AllAnimeEpisode(
+        val id: String,
+        val episodeNumber: Int,
+        val type: String
+    ) {
+        val url =
+            """https://allanime.site/allanimeapi?variables={"showId":"$id","translationType":"$type","episodeString":"$episodeNumber"}&extensions={"persistedQuery":{"version":1,"sha256Hash":"29f49ce1a69320b2ab11a475fd114e5c07b03a7dc683f77dd502ca42b26df232"}}"""
+    }
 
     override suspend fun load(url: String): LoadResponse? {
-        val rhino = Context.enter()
-        rhino.initStandardObjects()
-        rhino.optimizationLevel = -1
-        val scope: Scriptable = rhino.initStandardObjects()
+        // Needs to be backwards compatible!
+        val idRegex = Regex("""[^\/]*$""")
+        val id = idRegex.find(url)?.value ?: throw RuntimeException("Unable to find ID from $url")
+        val apiUrl =
+            """https://allanime.site/allanimeapi?variables={"_id":"$id"}&extensions={"persistedQuery":{"version":1,"sha256Hash":"af4b72c51f94ed3b1bd6405ab279881ad84b3ba519ebc2382a1736d34c3c1bf6"}}"""
 
-        val html = app.get(url).text
-        val soup = Jsoup.parse(html)
-
-        val script = soup.select("script").firstOrNull {
-            it.html().contains("window.__NUXT__")
-        } ?: return null
-
-        val js = """
-            const window = {}
-            ${script.html()}
-            const returnValue = JSON.stringify(window.__NUXT__.fetch[0].show)
-        """.trimIndent()
-
-        rhino.evaluateString(scope, js, "JavaScript", 1, null)
-        val jsEval = scope.get("returnValue", scope) ?: return null
-        val showData = parseJson<Edges>(jsEval as String)
+        val showRoot = app.get(apiUrl).parsed<PageDataRoot>()
+        val showData = showRoot.data?.show ?: throw RuntimeException("No data found for $showRoot")
 
         val title = showData.name
         val description = showData.description
@@ -220,19 +282,19 @@ class AllAnimeProvider : MainAPI() {
             if (it == null) return@let Pair(null, null)
             Pair(if (it.sub != 0) ((1..it.sub).map { epNum ->
                 Episode(
-                    "$mainUrl/anime/${showData.Id}/episodes/sub/$epNum", episode = epNum
+                    AllAnimeEpisode(id, epNum, "sub").url, episode = epNum
                 )
             }) else null, if (it.dub != 0) ((1..it.dub).map { epNum ->
                 Episode(
-                    "$mainUrl/anime/${showData.Id}/episodes/dub/$epNum", episode = epNum
+                    AllAnimeEpisode(id, epNum, "dub").url, episode = epNum
                 )
             }) else null)
         }
 
-        val characters = soup.select("div.character > div.card-character-box").mapNotNull {
-            val img = it?.selectFirst("img")?.attr("src") ?: return@mapNotNull null
-            val name = it.selectFirst("div > a")?.ownText() ?: return@mapNotNull null
-            val role = when (it.selectFirst("div > .text-secondary")?.text()?.trim()) {
+        val characters = showData.characters.mapNotNull {
+            val img = it.image?.large ?: it.image?.medium ?: return@mapNotNull null
+            val name = it.name?.full ?: it.name?.native ?: return@mapNotNull null
+            val role = when (it.role?.trim()) {
                 "Main" -> ActorRole.Main
                 "Supporting" -> ActorRole.Supporting
                 "Background" -> ActorRole.Background
@@ -250,7 +312,7 @@ class AllAnimeProvider : MainAPI() {
         //    AnimeSearchResponse(recName, href, this.name, TvType.Anime, img)
         //}
 
-        return newAnimeLoadResponse(title, url, TvType.Anime) {
+        return newAnimeLoadResponse(title ?: "", url, TvType.Anime) {
             posterUrl = poster
             year = showData.airedStart?.year
 
@@ -312,18 +374,60 @@ class AllAnimeProvider : MainAPI() {
         @JsonProperty("episodeIframeHead") val episodeIframeHead: String
     )
 
+    // We support tracks now!
     private suspend fun getM3u8Qualities(
         m3u8Link: String,
         referer: String,
-        qualityName: String,
+        sourceName: String,
+        qualityString: String?,
     ): List<ExtractorLink> {
-        return M3u8Helper.generateM3u8(
-            this.name,
-            m3u8Link,
-            referer,
-            name = "${this.name} - $qualityName"
+        return listOf(
+            ExtractorLink(
+                this.name,
+                sourceName,
+                m3u8Link,
+                referer,
+                getQualityFromName(qualityString),
+                isM3u8 = true
+            )
         )
+//        return M3u8Helper.generateM3u8(
+//            this.name,
+//            m3u8Link,
+//            referer,
+//            name = "${this.name} - sourceName"
+//        )
     }
+
+
+    data class LinkData(
+        @JsonProperty("data") val data: EpisodeData? = EpisodeData()
+    )
+
+    data class SourceUrls(
+        @JsonProperty("sourceUrl") val sourceUrl: String? = null,
+        @JsonProperty("priority") val priority: Double? = null,
+        @JsonProperty("sourceName") val sourceName: String? = null,
+        @JsonProperty("type") val type: String? = null,
+        @JsonProperty("className") val className: String? = null,
+        @JsonProperty("streamerId") val streamerId: String? = null
+    )
+
+    data class EpisodeData(
+        @JsonProperty("episode") val episode: Episode? = Episode()
+    )
+
+    data class Episode(
+        @JsonProperty("episodeString") val episodeString: String? = null,
+//  @JsonProperty("uploadDate"    ) val uploadDate    : UploadDate?           = UploadDate(),
+        @JsonProperty("sourceUrls") val sourceUrls: ArrayList<SourceUrls> = arrayListOf(),
+        @JsonProperty("thumbnail") val thumbnail: String? = null,
+        @JsonProperty("notes") val notes: String? = null,
+        @JsonProperty("show") val show: Show? = Show(),
+//  @JsonProperty("pageStatus"    ) val pageStatus    : PageStatus?           = PageStatus(),
+        @JsonProperty("versionFix") val versionFix: String? = null,
+        @JsonProperty("__typename") val _typename: String? = null
+    )
 
     override suspend fun loadLinks(
         data: String,
@@ -336,13 +440,11 @@ class AllAnimeProvider : MainAPI() {
         if (apiEndPoint.endsWith("/")) apiEndPoint =
             apiEndPoint.slice(0 until apiEndPoint.length - 1)
 
-        val html = app.get(data).text
+        val sources = app.get(data).parsed<LinkData>().data?.episode?.sourceUrls
 
-        val sources = Regex("""sourceUrl[:=]"(.+?)"""").findAll(html).toList()
-            .map { URLDecoder.decode(it.destructured.component1().sanitize(), "UTF-8") }
-        sources.apmap {
+        sources?.apmap {
             safeApiCall {
-                var link = it.replace(" ", "%20")
+                var link = it.sourceUrl?.replace(" ", "%20") ?: return@safeApiCall
                 if (URI(link).isAbsolute || link.startsWith("//")) {
                     if (link.startsWith("//")) link = "https:$it"
 
@@ -350,12 +452,17 @@ class AllAnimeProvider : MainAPI() {
                         // for now ignore
                     } else if (!embedIsBlacklisted(link)) {
                         if (URI(link).path.contains(".m3u")) {
-                            getM3u8Qualities(link, data, URI(link).host).forEach(callback)
+                            getM3u8Qualities(
+                                link,
+                                data,
+                                it.sourceName ?: URI(link).host,
+                                null
+                            ).forEach(callback)
                         } else {
                             callback(
                                 ExtractorLink(
                                     "AllAnime - " + URI(link).host,
-                                    "",
+                                    it.sourceName ?: "",
                                     link,
                                     data,
                                     Qualities.P1080.value,
@@ -377,6 +484,7 @@ class AllAnimeProvider : MainAPI() {
                                     "$apiEndPoint/player?uri=" + (if (URI(server.link).host.isNotEmpty()) server.link else apiEndPoint + URI(
                                         server.link
                                     ).path),
+                                    it.sourceName ?: server.resolutionStr,
                                     server.resolutionStr
                                 ).forEach(callback)
                             } else {
