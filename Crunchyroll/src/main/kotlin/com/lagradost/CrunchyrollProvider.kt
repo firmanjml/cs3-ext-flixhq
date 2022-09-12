@@ -298,16 +298,19 @@ class KrunchyProvider : MainAPI() {
                     epDesc = "★ $epDesc ★"
                 }
 
+                val isPremiumDubbed =
+                    isPremium && seasonName != null && (seasonName.contains("Dub") || seasonName.contains(
+                        "Russian"
+                    ) || seasonName.contains("Spanish"))
+
                 val epi = Episode(
                     fixUrl(ep.attr("href")),
                     "$epTitle",
                     posterUrl = poster?.replace("widestar", "full")?.replace("wide", "full"),
-                    description = epDesc
+                    description = epDesc,
+                    season = if (isPremium) -1 else 1
                 )
-                if (isPremium && seasonName != null && (seasonName.contains("Dub") || seasonName.contains(
-                        "Russian"
-                    ) || seasonName.contains("Spanish"))
-                ) {
+                if (isPremiumDubbed) {
                     premiumDubEpisodes.add(epi)
                 } else if (isPremium) {
                     premiumSubEpisodes.add(epi)
@@ -341,20 +344,33 @@ class KrunchyProvider : MainAPI() {
             this.engName = title
             if (subEpisodes.isNotEmpty()) addEpisodes(DubStatus.Subbed, subEpisodes.reversed())
             if (dubEpisodes.isNotEmpty()) addEpisodes(DubStatus.Dubbed, dubEpisodes.reversed())
-            // TODO add arbitrary seasons
 
-            //if (premiumDubEpisodes.isNotEmpty()) addEpisodes(
-            //   DubStatus.PremiumDub,
-            //   premiumDubEpisodes.reversed()
-            //  )
-            // if (premiumSubEpisodes.isNotEmpty()) addEpisodes(
-            //    DubStatus.PremiumSub,
-            //   premiumSubEpisodes.reversed()
-            //  )
+            if (premiumDubEpisodes.isNotEmpty()) addEpisodes(
+                DubStatus.Dubbed,
+                premiumDubEpisodes.reversed()
+            )
+            if (premiumSubEpisodes.isNotEmpty()) addEpisodes(
+                DubStatus.Subbed,
+                premiumSubEpisodes.reversed()
+            )
+
             this.plot = description
             this.tags = genres
             this.year = year
+
             this.recommendations = recommendations
+            this.seasonNames = listOf(
+                SeasonData(
+                    1,
+                    "Free",
+                    null
+                ),
+                SeasonData(
+                    -1,
+                    "Premium",
+                    null
+                ),
+            )
         }
     }
 
