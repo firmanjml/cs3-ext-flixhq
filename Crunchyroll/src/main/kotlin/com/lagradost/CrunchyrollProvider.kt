@@ -467,19 +467,19 @@ class KrunchyProvider : MainAPI() {
 
             streams.apmap { stream ->
                 if (stream.url.contains("m3u8") && stream.format!!.contains("adaptive")) {
-                    hlsHelper.m3u8Generation(M3u8Helper.M3u8Stream(stream.url, null), false)
-                        .forEach {
-                            callback(
-                                ExtractorLink(
-                                    "Crunchyroll",
-                                    "Crunchy - ${stream.title}",
-                                    it.streamUrl,
-                                    "",
-                                    getQualityFromName(it.quality.toString()),
-                                    true
-                                )
-                            )
-                        }
+//                    hlsHelper.m3u8Generation(M3u8Helper.M3u8Stream(stream.url, null), false)
+//                        .forEach {
+                    callback(
+                        ExtractorLink(
+                            "Crunchyroll",
+                            "Crunchy - ${stream.title}",
+                            stream.url,
+                            "",
+                            getQualityFromName(stream.resolution),
+                            true
+                        )
+                    )
+//                        }
                 } else if (stream.format == "trailer_hls") {
                     val premiumStream = stream.url
                         .replace("\\/", "/")
