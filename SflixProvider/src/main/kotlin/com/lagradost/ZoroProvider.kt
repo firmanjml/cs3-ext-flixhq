@@ -322,6 +322,10 @@ class ZoroProvider : MainAPI() {
         }
     }
 
+    private suspend fun getKey(): String {
+        return app.get("https://raw.githubusercontent.com/consumet/rapidclown/main/key.txt").text
+    }
+
     override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
@@ -349,21 +353,23 @@ class ZoroProvider : MainAPI() {
             val extractorLink = app.get(
                 link,
             ).parsed<RapidCloudResponse>().link
-            val hasLoadedExtractorLink =
-                loadExtractor(extractorLink, "https://rapid-cloud.ru/", subtitleCallback, callback)
+//            val hasLoadedExtractorLink =
+//                loadExtractor(extractorLink, "https://rapid-cloud.ru/", subtitleCallback, callback)
 
-            if (!hasLoadedExtractorLink) {
+//            if (!hasLoadedExtractorLink) {
                 extractRabbitStream(
                     extractorLink,
                     subtitleCallback,
                     // Blacklist VidCloud for now
                     { videoLink -> if (!videoLink.url.contains("betterstream")) callback(videoLink) },
-                    true,
-                    extractorData
+                    false,
+//                    extractorData,
+                    decryptKey = getKey()
+
                 ) { sourceName ->
                     sourceName + " - ${it.first}"
                 }
-            }
+//            }
         }
 
         return true
