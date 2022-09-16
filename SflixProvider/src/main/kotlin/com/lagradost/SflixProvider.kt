@@ -318,15 +318,6 @@ open class SflixProvider : MainAPI() {
 //        @JsonProperty("title") val title: String? = null
     )
 
-
-    open suspend fun getKey(): String? {
-        data class KeyObject(
-            @JsonProperty("key") val key: String? = null
-        )
-        return app.get("https://raw.githubusercontent.com/chenkaslowankiya/BruhGlow/main/keys.json")
-            .parsed<KeyObject>().key
-    }
-
     override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
@@ -467,6 +458,13 @@ open class SflixProvider : MainAPI() {
             return code.reversed()
         }
 
+        suspend fun getKey(): String? {
+            data class KeyObject(
+                @JsonProperty("key") val key: String? = null
+            )
+            return app.get("https://raw.githubusercontent.com/chenkaslowankiya/BruhGlow/main/keys.json")
+                .parsed<KeyObject>().key
+        }
 
         /**
          * Generates a session
@@ -643,7 +641,7 @@ open class SflixProvider : MainAPI() {
                                     extractorData = extractorData
                                 )
                             }
-                    } ?: listOf(
+                    }.takeIf { !it.isNullOrEmpty() } ?: listOf(
                         // Fallback if m3u8 extractor fails
                         ExtractorLink(
                             caller.name,
@@ -794,7 +792,6 @@ open class SflixProvider : MainAPI() {
             } else {
                 response.parsedSafe()
             } ?: return@suspendSafeApiCall
-
 
             sourceObject.tracks?.forEach { track ->
                 track?.toSubtitleFile()?.let { subtitleFile ->

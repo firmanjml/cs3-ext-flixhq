@@ -64,7 +64,7 @@ class TwoEmbedProvider : TmdbProvider() {
             val mappedservers = parseJson<EmbedJson>(ajax)
             val iframeLink = mappedservers.link
             if (iframeLink.contains("rabbitstream")) {
-                extractRabbitStream(iframeLink, subtitleCallback, callback, false) { it }
+                extractRabbitStream(iframeLink, subtitleCallback, callback, false, decryptKey = SflixProvider.getKey()) { it }
             } else {
                 loadExtractor(iframeLink, embedUrl, subtitleCallback, callback)
             }
