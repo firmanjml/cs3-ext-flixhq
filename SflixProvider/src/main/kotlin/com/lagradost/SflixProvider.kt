@@ -459,11 +459,11 @@ open class SflixProvider : MainAPI() {
         }
 
         suspend fun getKey(): String? {
-//            data class KeyObject(
-//                @JsonProperty("key") val key: String? = null
-//            )
-            return app.get("https://raw.githubusercontent.com/chenkaslowankiya/BruhGlow/main/keys.json").text
-//                .parsed<KeyObject>().key
+            data class KeyObject(
+                @JsonProperty("key") val key: String? = null
+            )
+            return app.get("https://raw.githubusercontent.com/BlipBlob/blabflow/main/keys.json")
+                .parsed<KeyObject>().key
         }
 
         /**
