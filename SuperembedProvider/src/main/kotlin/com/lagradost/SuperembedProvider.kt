@@ -24,10 +24,13 @@ class SuperembedProvider : TmdbProvider() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val mappedData = tryParseJson<TmdbLink>(data)
+        val mappedData = tryParseJson<TmdbLink>(data) ?: return false
         val tmdbId = mappedData?.tmdbID ?: return false
 
-        val document = app.get("https://seapi.link/?type=tmdb&id=${tmdbId}&max_results=1").text
+        val document = app.get(
+            if (mappedData.season == null || mappedData.episode == null) "https://seapi.link/?type=tmdb&id=${tmdbId}&max_results=1"
+            else "https://seapi.link/?type=tmdb&id=${tmdbId}&season=${mappedData.season}&episode=${mappedData.episode}&max_results=1"
+        ).text
         val response = tryParseJson<ApiResponse>(document) ?: return false
 
         response.results.forEach {
