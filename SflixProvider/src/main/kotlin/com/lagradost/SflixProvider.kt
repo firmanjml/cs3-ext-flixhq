@@ -304,6 +304,7 @@ open class SflixProvider : MainAPI() {
 
     data class SourceObjectEncrypted(
         @JsonProperty("sources") val sources: String?,
+        @JsonProperty("encrypted") val encrypted: Boolean?,
         @JsonProperty("sources_1") val sources1: String?,
         @JsonProperty("sources_2") val sources2: String?,
         @JsonProperty("sourcesBackup") val sourcesBackup: String?,
@@ -779,16 +780,19 @@ open class SflixProvider : MainAPI() {
                 )
             )
 
+            println("Sflix response: $response")
             val sourceObject = if (response.text.contains("encrypted") && decryptKey != null) {
                 val encryptedMap = response.parsedSafe<SourceObjectEncrypted>()
-                val sources =
-                    encryptedMap?.sources ?: throw RuntimeException("NO SOURCES $encryptedMap")
-
-                val decrypted = decryptMapped<List<Sources>>(sources, decryptKey)
-                SourceObject(
-                    sources = decrypted,
-                    tracks = encryptedMap.tracks
-                )
+                val sources = encryptedMap?.sources
+                if (sources == null || encryptedMap.encrypted == false) {
+                    response.parsedSafe()
+                } else {
+                    val decrypted = decryptMapped<List<Sources>>(sources, decryptKey)
+                    SourceObject(
+                        sources = decrypted,
+                        tracks = encryptedMap.tracks
+                    )
+                }
             } else {
                 response.parsedSafe()
             } ?: return@suspendSafeApiCall
