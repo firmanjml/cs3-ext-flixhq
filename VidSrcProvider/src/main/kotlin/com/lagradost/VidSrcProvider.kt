@@ -2,7 +2,7 @@ package com.lagradost
 
 import com.lagradost.cloudstream3.SubtitleFile
 import com.lagradost.cloudstream3.TvType
-//import com.lagradost.cloudstream3.extractors.VidSrcExtractor
+import com.lagradost.cloudstream3.extractors.VidSrcExtractor
 import com.lagradost.cloudstream3.metaproviders.TmdbLink
 import com.lagradost.cloudstream3.metaproviders.TmdbProvider
 import com.lagradost.cloudstream3.utils.AppUtils.parseJson
@@ -23,6 +23,12 @@ class VidSrcProvider : TmdbProvider() {
 //    companion object {
 //        val extractor = VidSrcExtractor()
 //    }
+
+    override suspend fun extractorVerifierJob(extractorData: String?) {
+        if (extractorData == null) return
+
+        VidSrcExtractor.validatePass(extractorData)
+    }
 
     override suspend fun loadLinks(
         data: String,
