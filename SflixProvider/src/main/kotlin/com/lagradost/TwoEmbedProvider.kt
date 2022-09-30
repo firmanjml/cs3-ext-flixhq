@@ -1,9 +1,7 @@
 package com.lagradost
 
-import android.util.Log
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.SflixProvider.Companion.extractRabbitStream
-import com.lagradost.SflixProvider.Companion.runSflixExtractorVerifierJob
 import com.lagradost.cloudstream3.APIHolder.getCaptchaToken
 import com.lagradost.cloudstream3.SubtitleFile
 import com.lagradost.cloudstream3.TvType
@@ -64,7 +62,7 @@ class TwoEmbedProvider : TmdbProvider() {
             val mappedservers = parseJson<EmbedJson>(ajax)
             val iframeLink = mappedservers.link
             if (iframeLink.contains("rabbitstream")) {
-                extractRabbitStream(iframeLink, subtitleCallback, callback, false, decryptKey = SflixProvider.getKey()) { it }
+                extractRabbitStream(iframeLink, subtitleCallback, callback) { it }
             } else {
                 loadExtractor(iframeLink, embedUrl, subtitleCallback, callback)
             }
@@ -72,8 +70,8 @@ class TwoEmbedProvider : TmdbProvider() {
         return true
     }
 
-    override suspend fun extractorVerifierJob(extractorData: String?) {
-        Log.d(this.name, "Starting ${this.name} job!")
-        runSflixExtractorVerifierJob(this, extractorData, "https://rabbitstream.net/")
-    }
+//    override suspend fun extractorVerifierJob(extractorData: String?) {
+//        Log.d(this.name, "Starting ${this.name} job!")
+//        runSflixExtractorVerifierJob(this, extractorData, "https://rabbitstream.net/")
+//    }
 }

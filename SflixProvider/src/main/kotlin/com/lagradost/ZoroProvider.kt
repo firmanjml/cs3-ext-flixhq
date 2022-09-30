@@ -1,9 +1,6 @@
 package com.lagradost
 
-import android.util.Log
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.lagradost.SflixProvider.Companion.extractRabbitStream
-import com.lagradost.SflixProvider.Companion.runSflixExtractorVerifierJob
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addAniListId
 import com.lagradost.cloudstream3.LoadResponse.Companion.addMalId
@@ -281,11 +278,6 @@ class ZoroProvider : MainAPI() {
         @JsonProperty("link") val link: String
     )
 
-    override suspend fun extractorVerifierJob(extractorData: String?) {
-        Log.d(this.name, "Starting ${this.name} job!")
-        runSflixExtractorVerifierJob(this, extractorData, "https://rapid-cloud.ru/")
-    }
-
     /** Url hashcode to sid */
     var sid: HashMap<Int, String?> = hashMapOf()
 
@@ -343,8 +335,8 @@ class ZoroProvider : MainAPI() {
             )
         }
 
-        val extractorData =
-            "https://ws1.rapid-cloud.ru/socket.io/?EIO=4&transport=polling"
+//        val extractorData =
+//            "https://ws1.rapid-cloud.ru/socket.io/?EIO=4&transport=polling"
 
         // Prevent duplicates
         servers.distinctBy { it.second }.apmap {
@@ -354,21 +346,19 @@ class ZoroProvider : MainAPI() {
                 link,
             ).parsed<RapidCloudResponse>().link
 //            val hasLoadedExtractorLink =
-//                loadExtractor(extractorLink, "https://rapid-cloud.ru/", subtitleCallback, callback)
-
+                loadExtractor(extractorLink, "https://rapid-cloud.ru/", subtitleCallback, callback)
 //            if (!hasLoadedExtractorLink) {
-                extractRabbitStream(
-                    extractorLink,
-                    subtitleCallback,
-                    // Blacklist VidCloud for now
-                    { videoLink -> if (!videoLink.url.contains("betterstream")) callback(videoLink) },
-                    false,
-//                    extractorData,
-                    decryptKey = getKey()
-
-                ) { sourceName ->
-                    sourceName + " - ${it.first}"
-                }
+//                extractRabbitStream(
+//                    extractorLink,
+//                    subtitleCallback,
+//                    // Blacklist VidCloud for now
+//                    { videoLink -> if (!videoLink.url.contains("betterstream")) callback(videoLink) },
+////                    false,
+////                    extractorData,
+////                    decryptKey = getKey()
+//                ) { sourceName ->
+//                    sourceName + " - ${it.first}"
+//                }
 //            }
         }
 
