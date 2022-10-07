@@ -257,6 +257,7 @@ class SuperStream : MainAPI() {
 
     private data class Data(
         @JsonProperty("id") val id: Int? = null,
+        @JsonProperty("mid") val mid: Int? = null,
         @JsonProperty("box_type") val boxType: Int? = null,
         @JsonProperty("title") val title: String? = null,
         @JsonProperty("poster_org") val posterOrg: String? = null,
@@ -269,7 +270,7 @@ class SuperStream : MainAPI() {
         fun toSearchResponse(api: MainAPI): MovieSearchResponse? {
             return api.newMovieSearchResponse(
                 this.title ?: "",
-                LoadData(this.id ?: return null, this.boxType).toJson(),
+                LoadData(this.id ?: this.mid ?: return null, this.boxType ?: ResponseTypes.Movies.value).toJson(),
                 ResponseTypes.getResponseType(this.boxType).toTvType(),
                 false
             ) {
