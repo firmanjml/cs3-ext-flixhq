@@ -2,7 +2,6 @@ package com.lagradost
 
 import com.lagradost.cloudstream3.SubtitleFile
 import com.lagradost.cloudstream3.TvType
-import com.lagradost.cloudstream3.app
 import com.lagradost.cloudstream3.metaproviders.TmdbLink
 import com.lagradost.cloudstream3.metaproviders.TmdbProvider
 import com.lagradost.cloudstream3.network.WebViewResolver
@@ -10,9 +9,6 @@ import com.lagradost.cloudstream3.utils.AppUtils.parseJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.nicehttp.requestCreator
-import org.mozilla.javascript.Context
-import org.mozilla.javascript.Scriptable
-import org.mozilla.javascript.ScriptableObject
 
 class OlgplyProvider : TmdbProvider() {
     override var mainUrl = "https://olgply.com"
@@ -31,7 +27,7 @@ class OlgplyProvider : TmdbProvider() {
             Regex("""\.m3u8|i7njdjvszykaieynzsogaysdgb0hm8u1mzubmush4maopa4wde\.com""")
         ).resolveUsingWebView(
             requestCreator(
-                "GET", url, referer = "https://olgply.xyz/"
+                "GET", url, referer = "https://olgply.com/"
             )
         )
             .first ?: return
@@ -39,7 +35,7 @@ class OlgplyProvider : TmdbProvider() {
         callback.invoke(
             ExtractorLink(
                 this.name,
-                "Movies4Discord",
+                this.name,
                 foundVideo.url.toString(),
                 "",
                 Qualities.Unknown.value,
@@ -57,7 +53,7 @@ class OlgplyProvider : TmdbProvider() {
     ): Boolean {
         val mappedData = parseJson<TmdbLink>(data)
         val tmdbId = mappedData.tmdbID ?: return false
-        val jsRegex = Regex("""eval\(.*\);""")
+//        val jsRegex = Regex("""eval\(.*\);""")
 
         val apiUrl =
             "https://olgply.xyz/${tmdbId}${mappedData.season?.let { "/$it" } ?: ""}${mappedData.episode?.let { "/$it" } ?: ""}"
