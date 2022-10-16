@@ -113,6 +113,7 @@ class Ask4MovieProvider : MainAPI() {
 
         val posterRegex = Regex("""url\((.*?)\)""")
         val mappedRows = rows.mapNotNull {
+            var isHorizontal = true
             val items = it.select("div.slide-item").map { element ->
                 val thumb = element.select("div.item-thumb")
                 val poster = posterRegex.find(thumb.attr("style"))?.groupValues?.get(1)
@@ -122,6 +123,7 @@ class Ask4MovieProvider : MainAPI() {
                     Regex("""\((\d{4})\)$""").find(title)?.groupValues?.getOrNull(1)?.toIntOrNull()
                 MovieSearchResponse(title, href, this.name, TvType.Movie, poster, year)
             }.ifEmpty {
+                isHorizontal = false
                 it.select("div.channel-content.clearfix").map { searchElement ->
                     searchElement.articleToSearchResponse()
                 }
@@ -129,7 +131,7 @@ class Ask4MovieProvider : MainAPI() {
 
             val title = it.select("div.title").text()
             if (title.contains("porn", true) && !settingsForProvider.enableAdult) return@mapNotNull null
-            HomePageList(title, items)
+            HomePageList(title, items, isHorizontal)
         }
         return HomePageResponse(mappedRows)
     }
