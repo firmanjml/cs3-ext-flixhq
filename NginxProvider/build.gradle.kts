@@ -5,7 +5,7 @@ dependencies {
 }
 
 // use an integer for version numbers
-version = 9
+version = 10
 
 
 cloudstream {
