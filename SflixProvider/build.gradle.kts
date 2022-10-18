@@ -6,7 +6,7 @@ cloudstream {
     language = "en"
     // All of these properties are optional, you can safely remove them
 
-    description = "Also includes Dopebox, Solarmovie, Zoro, HDToday and 2embed"
+    description = "Due to the video host changing encryption methods extremely often these extensions might not work perfectly. Also includes Dopebox, Solarmovie, Zoro, HDToday and 2embed"
     // authors = listOf("Cloudburst")
 
     /**
