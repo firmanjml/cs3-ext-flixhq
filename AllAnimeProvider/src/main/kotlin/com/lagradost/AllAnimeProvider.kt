@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.mvvm.safeApiCall
+import com.lagradost.cloudstream3.ui.settings.SettingsProviders
 import com.lagradost.cloudstream3.utils.AppUtils.parseJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.M3u8Helper
@@ -104,56 +105,70 @@ class AllAnimeProvider : MainAPI() {
         @JsonProperty("__typename") val _typename: String? = null
     )
 
-    override suspend fun getMainPage(page: Int, request : MainPageRequest): HomePageResponse {
-        val items = ArrayList<HomePageList>()
-        val urls = listOf(
-//            Pair(
-//                "Top Anime",
-//                """$mainUrl/graphql?variables={"type":"anime","size":30,"dateRange":30}&extensions={"persistedQuery":{"version":1,"sha256Hash":"276d52ba09ca48ce2b8beb3affb26d9d673b22f9d1fd4892aaa39524128bc745"}}"""
-//            ),
-            // "countryOrigin":"JP" for Japanese only
-            Pair(
-                "Recently updated",
-                """$mainUrl/graphql?variables={"search":{"allowAdult":false,"allowUnknown":false},"limit":30,"page":1,"translationType":"dub","countryOrigin":"ALL"}&extensions={"persistedQuery":{"version":1,"sha256Hash":"d2670e3e27ee109630991152c8484fce5ff5e280c523378001f9a23dc1839068"}}"""
-            ),
+    private val popularTitle = "Popular"
+    private val recentTitle = "Recently updated"
+    override val mainPage = listOf(
+        MainPageData(
+            recentTitle,
+            """$mainUrl/allanimeapi?variables={"search":{"sortBy":"Recent","allowAdult":${settingsForProvider.enableAdult},"allowUnknown":false},"limit":26,"page":%d,"translationType":"sub","countryOrigin":"ALL"}&extensions={"persistedQuery":{"version":1,"sha256Hash":"9c7a8bc1e095a34f2972699e8105f7aaf9082c6e1ccd56eab99c2f1a971152c6"}}"""
+        ),
+        MainPageData(
+            popularTitle,
+            """$mainUrl/allanimeapi?variables={"type":"anime","size":30,"dateRange":1,"page":%d,"allowAdult":${settingsForProvider.enableAdult},"allowUnknown":false}&extensions={"persistedQuery":{"version":1,"sha256Hash":"6f6fe5663e3e9ea60bdfa693f878499badab83e7f18b56acdba5f8e8662002aa"}}"""
         )
+    )
 
-        val random =
-            """$mainUrl/graphql?variables={"format":"anime"}&extensions={"persistedQuery":{"version":1,"sha256Hash":"21ac672633498a3698e8f6a93ce6c2b3722b29a216dcca93363bf012c360cd54"}}"""
-        val ranlink = app.get(random).text
-        val jsonran = parseJson<RandomMain>(ranlink)
-        val ranhome = jsonran.data?.queryRandomRecommendation?.map {
-            newAnimeSearchResponse(it.name!!, "$mainUrl/anime/${it.Id}", fix = false) {
-                this.posterUrl = it.thumbnail
-                this.otherName = it.nativeName
-            }
-        }
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        val url = request.data.format(page)
+        val test = app.get(url).text
 
-        items.add(HomePageList("Random", ranhome!!))
+        val home = when (request.name) {
+            recentTitle -> {
+                val json = parseJson<AllAnimeQuery>(test)
+                val results = json.data.shows.edges.filter {
+                    // filtering in case there is an anime with 0 episodes available on the site.
+                    !(it.availableEpisodes?.raw == 0 && it.availableEpisodes.sub == 0 && it.availableEpisodes.dub == 0)
+                }
 
-        urls.apmap { (HomeName, url) ->
-            val test = app.get(url).text
-            val json = parseJson<AllAnimeQuery>(test)
-            val home = ArrayList<SearchResponse>()
-            val results = json.data.shows.edges.filter {
-                // filtering in case there is an anime with 0 episodes available on the site.
-                !(it.availableEpisodes?.raw == 0 && it.availableEpisodes.sub == 0 && it.availableEpisodes.dub == 0)
-            }
-            results.map {
-                home.add(
+                results.map {
                     newAnimeSearchResponse(it.name, "$mainUrl/anime/${it.Id}", fix = false) {
                         this.posterUrl = it.thumbnail
                         this.year = it.airedStart?.year
                         this.otherName = it.englishName
                         addDub(it.availableEpisodes?.dub)
                         addSub(it.availableEpisodes?.sub)
-                    })
+                    }
+                }
             }
-            items.add(HomePageList(HomeName, home))
+            popularTitle -> {
+                val json = parseJson<PopularQuery>(test)
+                val results = json.data?.queryPopular?.recommendations?.filter {
+                    // filtering in case there is an anime with 0 episodes available on the site.
+                    !(it.anyCard?.availableEpisodes?.raw == 0 && it.anyCard.availableEpisodes.sub == 0 && it.anyCard.availableEpisodes.dub == 0)
+                }
+                results?.mapNotNull {
+                    newAnimeSearchResponse(
+                        it.anyCard?.name ?: return@mapNotNull null,
+                        "$mainUrl/anime/${it.anyCard.Id ?: it.pageStatus?.Id}",
+                        fix = false
+                    ) {
+                        this.posterUrl = it.anyCard.thumbnail
+                        this.otherName = it.anyCard.englishName
+                        addDub(it.anyCard.availableEpisodes?.dub)
+                        addSub(it.anyCard.availableEpisodes?.sub)
+                    }
+                } ?: emptyList()
+            }
+            else -> emptyList()
         }
 
-        if (items.size <= 0) throw ErrorLoadingException()
-        return HomePageResponse(items)
+
+
+        return HomePageResponse(
+            listOf(
+                HomePageList(request.name, home)
+            ), hasNext = home.isNotEmpty()
+        )
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
