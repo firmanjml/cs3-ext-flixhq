@@ -13,6 +13,8 @@ import com.lagradost.cloudstream3.utils.loadExtractor
 import org.json.JSONObject
 import java.net.URLEncoder
 
+private const val TRACKER_LIST_URL = "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt"
+
 class StremioProvider : MainAPI() {
     override var mainUrl = "https://stremio.github.io/stremio-static-addon-example"
     override var name = "Stremio example"
@@ -53,7 +55,6 @@ class StremioProvider : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        Log.i("Stremio", data)
         val res = tryParseJson<StreamsResponse>(app.get(data).text) ?: return false
         res.streams.forEach { stream ->
             stream.runCallback(subtitleCallback, callback)
@@ -164,7 +165,9 @@ class StremioProvider : MainAPI() {
         val url: String?,
         val ytId: String?,
         val externalUrl: String?,
-        val behaviorHints: JSONObject?
+        val behaviorHints: JSONObject?,
+        val infoHash: String?,
+        val sources: List<String> = emptyList()
     ) {
         suspend fun runCallback(subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit) {
             if (url != null) {
@@ -204,6 +207,33 @@ class StremioProvider : MainAPI() {
             }
             if (externalUrl != null) {
                 loadExtractor(externalUrl, subtitleCallback, callback)
+            }
+            if (infoHash != null) {
+                val resp = app.get(TRACKER_LIST_URL).text
+                val otherTrackers = resp
+                    .split("\n")
+                    .filterIndexed{i, s -> i%2==0}
+                    .filter{s -> !s.isNullOrEmpty()}
+                    .map{it -> "&tr=$it"}
+                    .joinToString("")
+                
+                val sourceTrackers = sources
+                    .filter{it->it.startsWith("tracker:")}
+                    .map{it->it.removePrefix("tracker:")}
+                    .filter{s -> !s.isNullOrEmpty()}
+                    .map{it -> "&tr=$it"}
+                    .joinToString("")
+
+                val magnet = "magnet:?xt=urn:btih:${infoHash}${sourceTrackers}"
+                callback.invoke(
+                    ExtractorLink(
+                        name ?: "",
+                        title ?: name ?: "",
+                        magnet,
+                        "",
+                        Qualities.Unknown.value
+                    )
+                )
             }
         }
     }
