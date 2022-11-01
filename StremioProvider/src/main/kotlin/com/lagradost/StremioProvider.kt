@@ -224,7 +224,7 @@ class StremioProvider : MainAPI() {
                     .map{it -> "&tr=$it"}
                     .joinToString("")
 
-                val magnet = "magnet:?xt=urn:btih:${infoHash}${sourceTrackers}"
+                val magnet = "magnet:?xt=urn:btih:${infoHash}${sourceTrackers}${otherTrackers}"
                 callback.invoke(
                     ExtractorLink(
                         name ?: "",
