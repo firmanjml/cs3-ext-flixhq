@@ -1,6 +1,7 @@
 package com.lagradost
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.lagradost.SflixProvider.Companion.extractRabbitStream
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addAniListId
 import com.lagradost.cloudstream3.LoadResponse.Companion.addMalId
@@ -345,21 +346,21 @@ class ZoroProvider : MainAPI() {
             val extractorLink = app.get(
                 link,
             ).parsed<RapidCloudResponse>().link
-//            val hasLoadedExtractorLink =
+            val hasLoadedExtractorLink =
                 loadExtractor(extractorLink, "https://rapid-cloud.ru/", subtitleCallback, callback)
-//            if (!hasLoadedExtractorLink) {
-//                extractRabbitStream(
-//                    extractorLink,
-//                    subtitleCallback,
-//                    // Blacklist VidCloud for now
-//                    { videoLink -> if (!videoLink.url.contains("betterstream")) callback(videoLink) },
-////                    false,
-////                    extractorData,
-////                    decryptKey = getKey()
-//                ) { sourceName ->
-//                    sourceName + " - ${it.first}"
-//                }
-//            }
+            if (!hasLoadedExtractorLink) {
+                extractRabbitStream(
+                    extractorLink,
+                    subtitleCallback,
+                    // Blacklist VidCloud for now
+                    { videoLink -> if (!videoLink.url.contains("betterstream")) callback(videoLink) },
+                    false,
+                    null,
+                    decryptKey = getKey()
+                ) { sourceName ->
+                    sourceName + " - ${it.first}"
+                }
+            }
         }
 
         return true

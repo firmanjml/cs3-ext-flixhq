@@ -22,6 +22,7 @@ import javax.crypto.spec.SecretKeySpec
 import kotlin.math.roundToInt
 
 class SuperStream : MainAPI() {
+    private val timeout = 120L
     override var name = "SuperStream"
     override val hasMainPage = true
     override val hasChromecastSupport = true
@@ -177,7 +178,7 @@ class SuperStream : MainAPI() {
             "medium" to "Website&token$token"
         )
 
-        return app.post(apiUrl, headers = headers, data = data)
+        return app.post(apiUrl, headers = headers, data = data, timeout = timeout)
     }
 
     private suspend inline fun <reified T : Any> queryApiParsed(query: String): T {
