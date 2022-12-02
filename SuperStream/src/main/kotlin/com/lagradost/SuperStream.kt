@@ -156,7 +156,7 @@ class SuperStream : MainAPI() {
         }
     }
 
-    private suspend fun queryApi(query: String): NiceResponse {
+    private suspend fun queryApi(query: String, useAlternativeApi: Boolean = false): NiceResponse {
         val encryptedQuery = CipherUtils.encrypt(query, key, iv)!!
         val appKeyHash = CipherUtils.md5(appKey)!!
         val newBody =
@@ -178,11 +178,12 @@ class SuperStream : MainAPI() {
             "medium" to "Website&token$token"
         )
 
-        return app.post(apiUrl, headers = headers, data = data, timeout = timeout)
+        val url = if (useAlternativeApi) secondApiUrl else apiUrl
+        return app.post(url, headers = headers, data = data, timeout = timeout)
     }
 
-    private suspend inline fun <reified T : Any> queryApiParsed(query: String): T {
-        return queryApi(query).parsed()
+    private suspend inline fun <reified T : Any> queryApiParsed(query: String, useAlternativeApi: Boolean = false): T {
+        return queryApi(query, useAlternativeApi).parsed()
     }
 
     private fun getExpiryDate(): Long {
@@ -220,9 +221,16 @@ class SuperStream : MainAPI() {
     // Free Tibet, The Tienanmen Square protests of 1989
     private val iv = base64Decode("d0VpcGhUbiE=")
     private val key = base64Decode("MTIzZDZjZWRmNjI2ZHk1NDIzM2FhMXc2")
+
     private val ip = base64Decode("aHR0cHM6Ly8xNTIuMzIuMTQ5LjE2MA==")
     private val apiUrl =
         "$ip${base64Decode("L2FwaS9hcGlfY2xpZW50L2luZGV4Lw==")}"
+
+    // Another url because the first one sucks at searching
+    // This one was revealed to me in a dream
+    private val secondApiUrl =
+        base64Decode("aHR0cHM6Ly9tYnBhcGkuc2hlZ3UubmV0L2FwaS9hcGlfY2xpZW50L2luZGV4Lw==")
+
     private val appKey = base64Decode("bW92aWVib3g=")
     private val appId = base64Decode("Y29tLnRkby5zaG93Ym94")
 
@@ -291,7 +299,7 @@ class SuperStream : MainAPI() {
         val apiQuery =
             // Originally 8 pagelimit
             """{"childmode":"$hideNsfw","app_version":"11.5","appid":"$appId","module":"Search3","channel":"Website","page":"1","lang":"en","type":"all","keyword":"$query","pagelimit":"20","expired_date":"${getExpiryDate()}","platform":"android"}"""
-        val searchResponse = parseJson<MainData>(queryApi(apiQuery).text).data.mapNotNull {
+        val searchResponse = queryApiParsed<MainData>(apiQuery, true).data.mapNotNull {
             it.toSearchResponse(this)
         }
         return searchResponse
