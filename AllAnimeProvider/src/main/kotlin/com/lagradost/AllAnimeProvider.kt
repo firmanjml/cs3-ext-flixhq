@@ -3,6 +3,7 @@ package com.lagradost
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
+import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 import com.lagradost.cloudstream3.mvvm.safeApiCall
 import com.lagradost.cloudstream3.ui.settings.SettingsProviders
 import com.lagradost.cloudstream3.utils.AppUtils.parseJson
@@ -55,9 +56,14 @@ class AllAnimeProvider : MainAPI() {
         @JsonProperty("availableEpisodes") val availableEpisodes: AvailableEpisodes?,
         @JsonProperty("availableEpisodesDetail") val availableEpisodesDetail: AvailableEpisodesDetail?,
         @JsonProperty("studios") val studios: List<String>?,
+        @JsonProperty("genres") val genres: List<String>?,
+        @JsonProperty("averageScore") val averageScore: Int?,
         @JsonProperty("description") val description: String?,
         @JsonProperty("status") val status: String?,
-    )
+        @JsonProperty("banner") val banner : String?,
+        @JsonProperty("episodeDuration") val episodeDuration : Int?,
+        @JsonProperty("prevideos") val prevideos : List<String> = emptyList(),
+        )
 
     private data class AvailableEpisodes(
         @JsonProperty("sub") val sub: Int,
@@ -225,6 +231,7 @@ class AllAnimeProvider : MainAPI() {
 
         rhino.evaluateString(scope, js, "JavaScript", 1, null)
         val jsEval = scope.get("returnValue", scope) ?: return null
+
         val showData = parseJson<Edges>(jsEval as String)
 
         val title = showData.name
@@ -256,7 +263,7 @@ class AllAnimeProvider : MainAPI() {
             Pair(Actor(name, img), role)
         }
 
-        // bruh, they use graphql
+        // bruh, they use graphql and bruh it is fucked
         //val recommendations = soup.select("#suggesction > div > div.p > .swipercard")?.mapNotNull {
         //    val recTitle = it?.selectFirst(".showname > a") ?: return@mapNotNull null
         //    val recName = recTitle.text() ?: return@mapNotNull null
@@ -267,7 +274,12 @@ class AllAnimeProvider : MainAPI() {
 
         return newAnimeLoadResponse(title, url, TvType.Anime) {
             posterUrl = poster
+            backgroundPosterUrl = showData.banner
+            rating = showData.averageScore?.times(100)
+            tags = showData.genres
             year = showData.airedStart?.year
+            duration = showData.episodeDuration?.div(60_000)
+            addTrailer(showData.prevideos.filter { it.isNotBlank() }.map { "https://www.youtube.com/watch?v=$it" })
 
             addEpisodes(DubStatus.Subbed, episodes.first)
             addEpisodes(DubStatus.Dubbed, episodes.second)
