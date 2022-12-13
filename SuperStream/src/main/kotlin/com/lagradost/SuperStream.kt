@@ -17,6 +17,8 @@ import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 import javax.crypto.Cipher
+import javax.crypto.Cipher.DECRYPT_MODE
+import javax.crypto.Cipher.ENCRYPT_MODE
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import kotlin.math.roundToInt
@@ -79,12 +81,37 @@ class SuperStream : MainAPI() {
                     length++
                 }
                 cipher.init(
-                    1,
+                    ENCRYPT_MODE,
                     SecretKeySpec(bArr, ALGORITHM),
                     IvParameterSpec(iv.toByteArray())
                 )
 
                 String(Base64.encode(cipher.doFinal(str.toByteArray()), 2), StandardCharsets.UTF_8)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                null
+            }
+        }
+
+        // Useful for deobfuscation
+        fun decrypt(str: String, key: String, iv: String): String? {
+            return try {
+                val cipher: Cipher = Cipher.getInstance(TRANSFORMATION)
+                val bArr = ByteArray(24)
+                val bytes: ByteArray = key.toByteArray()
+                var length = if (bytes.size <= 24) bytes.size else 24
+                System.arraycopy(bytes, 0, bArr, 0, length)
+                while (length < 24) {
+                    bArr[length] = 0
+                    length++
+                }
+                cipher.init(
+                    DECRYPT_MODE,
+                    SecretKeySpec(bArr, ALGORITHM),
+                    IvParameterSpec(iv.toByteArray())
+                )
+                val inputStr = Base64.decode(str.toByteArray(), Base64.DEFAULT)
+                cipher.doFinal(inputStr).decodeToString()
             } catch (e: Exception) {
                 e.printStackTrace()
                 null
@@ -156,7 +183,7 @@ class SuperStream : MainAPI() {
         }
     }
 
-    private suspend fun queryApi(query: String, useAlternativeApi: Boolean = false): NiceResponse {
+    private suspend fun queryApi(query: String, useAlternativeApi: Boolean): NiceResponse {
         val encryptedQuery = CipherUtils.encrypt(query, key, iv)!!
         val appKeyHash = CipherUtils.md5(appKey)!!
         val newBody =
@@ -173,7 +200,7 @@ class SuperStream : MainAPI() {
             "data" to base64Body,
             "appid" to "27",
             "platform" to "android",
-            "version" to "129",
+            "version" to appVersionCode,
             // Probably best to randomize this
             "medium" to "Website&token$token"
         )
@@ -182,7 +209,10 @@ class SuperStream : MainAPI() {
         return app.post(url, headers = headers, data = data, timeout = timeout)
     }
 
-    private suspend inline fun <reified T : Any> queryApiParsed(query: String, useAlternativeApi: Boolean = false): T {
+    private suspend inline fun <reified T : Any> queryApiParsed(
+        query: String,
+        useAlternativeApi: Boolean = true
+    ): T {
         return queryApi(query, useAlternativeApi).parsed()
     }
 
@@ -233,16 +263,19 @@ class SuperStream : MainAPI() {
 
     private val appKey = base64Decode("bW92aWVib3g=")
     private val appId = base64Decode("Y29tLnRkby5zaG93Ym94")
+    private val appIdSecond = base64Decode("Y29tLm1vdmllYm94cHJvLmFuZHJvaWQ=")
+    private val appVersion = "14.7"
+    private val appVersionCode = "160"
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val hideNsfw = if (settingsForProvider.enableAdult) 0 else 1
-        val json = queryApi(
-            """{"childmode":"$hideNsfw","app_version":"11.5","appid":"$appId","module":"Home_list_type_v2","channel":"Website","page":"$page","lang":"en","type":"all","pagelimit":"10","expired_date":"${getExpiryDate()}","platform":"android"}
+        val data = queryApiParsed<DataJSON>(
+            """{"childmode":"$hideNsfw","app_version":"$appVersion","appid":"$appIdSecond","module":"Home_list_type_v5","channel":"Website","page":"$page","lang":"en","type":"all","pagelimit":"10","expired_date":"${getExpiryDate()}","platform":"android"}
             """.trimIndent()
-        ).text
+        )
 
         // Cut off the first row (featured)
-        val pages = parseJson<DataJSON>(json).data.let { it.subList(minOf(it.size, 1), it.size) }
+        val pages = data.data.let { it.subList(minOf(it.size, 1), it.size) }
             .mapNotNull {
                 var name = it.name
                 if (name.isNullOrEmpty()) name = "Featured"
@@ -279,7 +312,10 @@ class SuperStream : MainAPI() {
         fun toSearchResponse(api: MainAPI): MovieSearchResponse? {
             return api.newMovieSearchResponse(
                 this.title ?: "",
-                LoadData(this.id ?: this.mid ?: return null, this.boxType ?: ResponseTypes.Movies.value).toJson(),
+                LoadData(
+                    this.id ?: this.mid ?: return null,
+                    this.boxType ?: ResponseTypes.Movies.value
+                ).toJson(),
                 ResponseTypes.getResponseType(this.boxType).toTvType(),
                 false
             ) {
@@ -298,7 +334,7 @@ class SuperStream : MainAPI() {
         val hideNsfw = if (settingsForProvider.enableAdult) 0 else 1
         val apiQuery =
             // Originally 8 pagelimit
-            """{"childmode":"$hideNsfw","app_version":"11.5","appid":"$appId","module":"Search3","channel":"Website","page":"1","lang":"en","type":"all","keyword":"$query","pagelimit":"20","expired_date":"${getExpiryDate()}","platform":"android"}"""
+            """{"childmode":"$hideNsfw","app_version":"$appVersion","appid":"$appIdSecond","module":"Search3","channel":"Website","page":"1","lang":"en","type":"all","keyword":"$query","pagelimit":"20","expired_date":"${getExpiryDate()}","platform":"android"}"""
         val searchResponse = queryApiParsed<MainData>(apiQuery, true).data.mapNotNull {
             it.toSearchResponse(this)
         }
@@ -480,7 +516,7 @@ class SuperStream : MainAPI() {
         val hideNsfw = if (settingsForProvider.enableAdult) 0 else 1
         if (isMovie) { // 1 = Movie
             val apiQuery =
-                """{"childmode":"$hideNsfw","uid":"","app_version":"11.5","appid":"$appId","module":"Movie_detail","channel":"Website","mid":"${loadData.id}","lang":"en","expired_date":"${getExpiryDate()}","platform":"android","oss":"","group":""}"""
+                """{"childmode":"$hideNsfw","uid":"","app_version":"$appVersion","appid":"$appIdSecond","module":"Movie_detail","channel":"Website","mid":"${loadData.id}","lang":"en","expired_date":"${getExpiryDate()}","platform":"android","oss":"","group":""}"""
             val data = (queryApiParsed<MovieDataProp>(apiQuery)).data
                 ?: throw RuntimeException("API error")
 
@@ -507,13 +543,13 @@ class SuperStream : MainAPI() {
             }
         } else { // 2 Series
             val apiQuery =
-                """{"childmode":"$hideNsfw","uid":"","app_version":"11.5","appid":"$appId","module":"TV_detail_1","display_all":"1","channel":"Website","lang":"en","expired_date":"${getExpiryDate()}","platform":"android","tid":"${loadData.id}"}"""
+                """{"childmode":"$hideNsfw","uid":"","app_version":"$appVersion","appid":"$appIdSecond","module":"TV_detail_1","display_all":"1","channel":"Website","lang":"en","expired_date":"${getExpiryDate()}","platform":"android","tid":"${loadData.id}"}"""
             val data = (queryApiParsed<SeriesDataProp>(apiQuery)).data
                 ?: throw RuntimeException("API error")
 
             val episodes = data.season.mapNotNull {
                 val seasonQuery =
-                    """{"childmode":"$hideNsfw","app_version":"11.5","year":"0","appid":"$appId","module":"TV_episode","display_all":"1","channel":"Website","season":"$it","lang":"en","expired_date":"${getExpiryDate()}","platform":"android","tid":"${loadData.id}"}"""
+                    """{"childmode":"$hideNsfw","app_version":"$appVersion","year":"0","appid":"$appIdSecond","module":"TV_episode","display_all":"1","channel":"Website","season":"$it","lang":"en","expired_date":"${getExpiryDate()}","platform":"android","tid":"${loadData.id}"}"""
                 (queryApiParsed<SeriesSeasonProp>(seasonQuery)).data
             }.flatten()
 
@@ -655,6 +691,7 @@ class SuperStream : MainAPI() {
         val parsed = parseJson<LinkData>(data)
 
         // No childmode when getting links
+        // New api does not return video links :(
         val query = if (parsed.type == ResponseTypes.Movies.value) {
             """{"childmode":"0","uid":"","app_version":"11.5","appid":"$appId","module":"Movie_downloadurl_v3","channel":"Website","mid":"${parsed.id}","lang":"","expired_date":"${getExpiryDate()}","platform":"android","oss":"1","group":""}"""
         } else {
@@ -663,7 +700,7 @@ class SuperStream : MainAPI() {
             """{"childmode":"0","app_version":"11.5","module":"TV_downloadurl_v3","channel":"Website","episode":"$episode","expired_date":"${getExpiryDate()}","platform":"android","tid":"${parsed.id}","oss":"1","uid":"","appid":"$appId","season":"$season","lang":"en","group":""}"""
         }
 
-        val linkData = queryApiParsed<LinkDataProp>(query)
+        val linkData = queryApiParsed<LinkDataProp>(query, false)
         linkData.data?.list?.forEach {
             callback.invoke(it.toExtractorLink() ?: return@forEach)
         }
