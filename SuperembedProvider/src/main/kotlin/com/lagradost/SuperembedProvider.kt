@@ -6,9 +6,8 @@ import com.lagradost.cloudstream3.metaproviders.TmdbProvider
 import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.loadExtractor
-import kotlinx.coroutines.delay
-import org.json.JSONArray
-import org.json.JSONObject
+import okhttp3.FormBody
+import android.util.Log
 
 class SuperembedProvider : TmdbProvider() {
     override var mainUrl = "https://seapi.link"
@@ -54,40 +53,31 @@ class SuperembedProvider : TmdbProvider() {
         val url: String
     ) {
         suspend fun getIframeContents(): String? {
-            val document = app.get(url)
+            var document = app.get(url)
+            for (i in 1..5) {
+                if ("captcha-message" in document.text) {
+                    val soup = document.document
+                    val prompt = soup.selectFirst(".captcha-message")?.text() ?: continue
+                    val captchaId = soup.selectFirst("input[name=\"captcha_id\"]")?.attr("value") ?: continue
+                    val promptGender = if ("female" in prompt) "female" else "male"
+                    val checkboxes = soup.select(".captcha-checkbox").mapNotNull { it -> 
+                        val img = it.selectFirst("img")?.attr("src") ?: return@mapNotNull null
+                        val gender = CaptchaSolver.predictFace("https://streamembed.net${img}") ?: return@mapNotNull null
+                        if (gender != promptGender) return@mapNotNull null
+                        return@mapNotNull it.selectFirst("input")?.attr("value")
+                    }
+                    val formData = FormBody.Builder().apply {
+                        add("captcha_id", captchaId)
+                        checkboxes.forEach { check ->
+                            add("captcha_answer[]", check)
+                        }
+                    }.build()
+                    document = app.post(url, requestBody=formData)
+                } else { break }
+            }
             val regex = "<iframe[^+]+\\+(?:window\\.)?atob\\(['\"]([-A-Za-z0-9+/=]+)".toRegex()
             val encoded = regex.find(document.text)?.groupValues?.get(1) ?: return null
             return base64Decode(encoded)
         }
     }
-
-    /*
-    private object CaptchaSolver {
-        private enum class Gender { Female, Male }
-        private suspend fun predictFace(url: String): Gender? {
-            val img = "data:image/jpeg;base64," + base64Encode(app.get(url).body.bytes())
-            val res = app.post("https://hf.space/embed/njgroene/age-gender-profilepic/api/queue/push/ HTTP/1.1", json = HFRequest(
-                listOf(img))).text
-            val request = tryParseJson<JSONObject>(res)
-            for (i in 1..5) {
-                delay(500L)
-                val document = app.post("https://hf.space/embed/njgroene/age-gender-profilepic/api/queue/status/", json=request).text
-                val status = tryParseJson<JSONObject>(document)
-                if (status?.get("status") != "COMPLETE") continue
-                val pred = (((status.get("data") as? JSONObject?)
-                    ?.get("data") as? JSONArray?)
-                    ?.get(0) as? String?) ?: return null
-                return if ("Male" in pred) Gender.Male
-                else if ("Female" in pred) Gender.Female
-                else null
-            }
-        }
-
-        private data class HFRequest(
-            val data: List<String>,
-            val action: String = "predict",
-            val fn_index: Int = 0,
-            val session_hash: String = "aaaaaaaaaaa"
-        )
-    }*/
 }
