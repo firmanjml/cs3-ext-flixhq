@@ -25,7 +25,7 @@ class TenshiProvider : MainAPI() {
         }
     }
 
-    override var mainUrl = "https://tenshi.moe"
+    override var mainUrl = "https://marin.moe"
     override var name = "Tenshi.moe"
     override val hasQuickSearch = false
     override val hasMainPage = true
