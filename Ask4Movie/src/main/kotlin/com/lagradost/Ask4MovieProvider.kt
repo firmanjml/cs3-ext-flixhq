@@ -1,7 +1,6 @@
 package com.lagradost
 
 import com.lagradost.cloudstream3.*
-import com.lagradost.cloudstream3.utils.Coroutines.main
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.loadExtractor
 import org.jsoup.Jsoup
@@ -78,14 +77,7 @@ class Ask4MovieProvider : MainAPI() {
     }
 
     private fun getIframe(html: String): String? {
-        val data = Regex("""<script src="data:text\/javascript;base64,([^"']*)""").findAll(html)
-            .lastOrNull()?.groupValues?.getOrNull(1) ?: return null
-        val decoded = base64Decode(data)
-        val iframeUrlRegex = Regex("""dir['"],['"]([^"']*)""")
-
-        val iframeEncoded = iframeUrlRegex.find(decoded)?.groupValues?.getOrNull(1) ?: return null
-        val iframe = base64Decode(iframeEncoded)
-        return Jsoup.parse(iframe).select("iframe").attr("src")
+        return Jsoup.parse(html).select("iframe").attr("data-src")
     }
 
     private suspend fun getEpisodes(iframe: String): List<Episode> {
