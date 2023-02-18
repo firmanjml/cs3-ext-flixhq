@@ -5,20 +5,22 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 import com.lagradost.cloudstream3.mvvm.safeApiCall
-import com.lagradost.cloudstream3.ui.settings.SettingsProviders
 import com.lagradost.cloudstream3.utils.AppUtils.parseJson
+import com.lagradost.cloudstream3.utils.AppUtils.toJson
+import com.lagradost.cloudstream3.utils.Coroutines.mainWork
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.M3u8Helper
 import com.lagradost.cloudstream3.utils.Qualities
+import com.lagradost.cloudstream3.utils.loadExtractor
 import org.jsoup.Jsoup
 import org.mozilla.javascript.Context
 import org.mozilla.javascript.Scriptable
 import java.net.URI
-import java.net.URLDecoder
 
 
 class AllAnimeProvider : MainAPI() {
-    override var mainUrl = "https://allanime.site"
+    override var mainUrl = "https://allanime.to"
+    private val apiUrl = "https://api.allanime.co"
     override var name = "AllAnime"
     override val hasQuickSearch = false
     override val hasMainPage = true
@@ -60,10 +62,10 @@ class AllAnimeProvider : MainAPI() {
         @JsonProperty("averageScore") val averageScore: Int?,
         @JsonProperty("description") val description: String?,
         @JsonProperty("status") val status: String?,
-        @JsonProperty("banner") val banner : String?,
-        @JsonProperty("episodeDuration") val episodeDuration : Int?,
-        @JsonProperty("prevideos") val prevideos : List<String> = emptyList(),
-        )
+        @JsonProperty("banner") val banner: String?,
+        @JsonProperty("episodeDuration") val episodeDuration: Int?,
+        @JsonProperty("prevideos") val prevideos: List<String> = emptyList(),
+    )
 
     private data class AvailableEpisodes(
         @JsonProperty("sub") val sub: Int,
@@ -209,12 +211,13 @@ class AllAnimeProvider : MainAPI() {
         @JsonProperty("raw") val raw: List<String>
     )
 
-
     override suspend fun load(url: String): LoadResponse? {
-        val rhino = Context.enter()
-        rhino.initSafeStandardObjects()
-        rhino.optimizationLevel = -1
-        val scope: Scriptable = rhino.initSafeStandardObjects()
+        val (rhino, scope) = mainWork {
+            val rhino = Context.enter()
+            rhino.optimizationLevel = -1
+            val scope: Scriptable = rhino.initSafeStandardObjects()
+            rhino to scope
+        }
 
         val html = app.get(url).text
         val soup = Jsoup.parse(html)
@@ -229,8 +232,10 @@ class AllAnimeProvider : MainAPI() {
             const returnValue = JSON.stringify(window.__NUXT__.fetch[0].show)
         """.trimIndent()
 
-        rhino.evaluateString(scope, js, "JavaScript", 1, null)
-        val jsEval = scope.get("returnValue", scope) ?: return null
+        val jsEval = mainWork {
+            rhino.evaluateString(scope, js, "JavaScript", 1, null)
+            scope.get("returnValue", scope) ?: return@mainWork null
+        } ?: return null
 
         val showData = parseJson<Edges>(jsEval as String)
 
@@ -240,13 +245,15 @@ class AllAnimeProvider : MainAPI() {
 
         val episodes = showData.availableEpisodes.let {
             if (it == null) return@let Pair(null, null)
+            if (showData.Id == null) return@let Pair(null, null)
+
             Pair(if (it.sub != 0) ((1..it.sub).map { epNum ->
                 Episode(
-                    "$mainUrl/anime/${showData.Id}/episodes/sub/$epNum", episode = epNum
+                    AllAnimeLoadData(showData.Id, "sub", epNum).toJson(), episode = epNum
                 )
             }) else null, if (it.dub != 0) ((1..it.dub).map { epNum ->
                 Episode(
-                    "$mainUrl/anime/${showData.Id}/episodes/dub/$epNum", episode = epNum
+                    AllAnimeLoadData(showData.Id, "dub", epNum).toJson(), episode = epNum
                 )
             }) else null)
         }
@@ -279,7 +286,8 @@ class AllAnimeProvider : MainAPI() {
             tags = showData.genres
             year = showData.airedStart?.year
             duration = showData.episodeDuration?.div(60_000)
-            addTrailer(showData.prevideos.filter { it.isNotBlank() }.map { "https://www.youtube.com/watch?v=$it" })
+            addTrailer(showData.prevideos.filter { it.isNotBlank() }
+                .map { "https://www.youtube.com/watch?v=$it" })
 
             addEpisodes(DubStatus.Subbed, episodes.first)
             addEpisodes(DubStatus.Dubbed, episodes.second)
@@ -299,6 +307,7 @@ class AllAnimeProvider : MainAPI() {
         "https://videobin.co/",
         "https://ok.ru",
         "https://streamlare.com",
+        "https://gembedhd.com",
     )
 
     private fun embedIsBlacklisted(url: String): Boolean {
@@ -352,74 +361,77 @@ class AllAnimeProvider : MainAPI() {
         )
     }
 
+    data class AllAnimeLoadData(
+        val hash: String,
+        val dubStatus: String,
+        val episode: Int
+    )
+
     override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
+        val loadData = parseJson<AllAnimeLoadData>(data)
         var apiEndPoint =
             parseJson<ApiEndPoint>(app.get("$mainUrl/getVersion").text).episodeIframeHead
         if (apiEndPoint.endsWith("/")) apiEndPoint =
             apiEndPoint.slice(0 until apiEndPoint.length - 1)
 
-        val html = app.get(data).text
+        val apiUrl =
+            """$apiUrl/allanimeapi?variables={"showId":"${loadData.hash}","translationType":"${loadData.dubStatus}","episodeString":"${loadData.episode}"}&extensions={"persistedQuery":{"version":1,"sha256Hash":"1f0a5d6c9ce6cd3127ee4efd304349345b0737fbf5ec33a60bbc3d18e3bb7c61"}}"""
+        val apiResponse = app.get(apiUrl).parsed<LinksQuery>()
 
-        val sources = Regex("""sourceUrl[:=]"(.+?)"""").findAll(html).toList()
-            .map { URLDecoder.decode(it.destructured.component1().sanitize(), "UTF-8") }
-        sources.apmap {
+        apiResponse.data?.episode?.sourceUrls?.apmap { source ->
             safeApiCall {
-                var link = it.replace(" ", "%20")
+                val link = source.sourceUrl?.replace(" ", "%20") ?: return@safeApiCall
                 if (URI(link).isAbsolute || link.startsWith("//")) {
-                    if (link.startsWith("//")) link = "https:$it"
+                    val fixedLink = if (link.startsWith("//")) "https:$link" else link
+                    val sourceName = source.sourceName ?: URI(link).host
 
-                    if (Regex("""streaming\.php\?""").matches(link)) {
-                        // for now ignore
-                    } else if (!embedIsBlacklisted(link)) {
-                        if (URI(link).path.contains(".m3u")) {
-                            getM3u8Qualities(link, data, URI(link).host).forEach(callback)
+                    if (embedIsBlacklisted(fixedLink)) {
+                        loadExtractor(fixedLink, subtitleCallback, callback)
+                    } else if (URI(fixedLink).path.contains(".m3u")) {
+                        getM3u8Qualities(fixedLink, mainUrl, sourceName).forEach(callback)
+                    } else {
+                        callback(
+                            ExtractorLink(
+                                name,
+                                sourceName,
+                                fixedLink,
+                                mainUrl,
+                                Qualities.P1080.value,
+                                false
+                            )
+                        )
+                    }
+                } else {
+                    val fixedLink = apiEndPoint + URI(link).path + ".json?" + URI(link).query
+                    val links = app.get(fixedLink).parsedSafe<AllAnimeVideoApiResponse>()?.links
+                        ?: emptyList()
+                    links.forEach { server ->
+                        if (server.hls != null && server.hls) {
+                            getM3u8Qualities(
+                                server.link,
+                                "$apiEndPoint/player?uri=" + (if (URI(server.link).host.isNotEmpty()) server.link else apiEndPoint + URI(
+                                    server.link
+                                ).path),
+                                server.resolutionStr
+                            ).forEach(callback)
                         } else {
                             callback(
                                 ExtractorLink(
-                                    "AllAnime - " + URI(link).host,
-                                    "",
-                                    link,
-                                    data,
-                                    Qualities.P1080.value,
-                                    false
-                                )
-                            )
-                        }
-                    }
-                } else {
-                    link = apiEndPoint + URI(link).path + ".json?" + URI(link).query
-                    val response = app.get(link)
-
-                    if (response.code < 400) {
-                        val links = parseJson<AllAnimeVideoApiResponse>(response.text).links
-                        links.forEach { server ->
-                            if (server.hls != null && server.hls) {
-                                getM3u8Qualities(
+                                    "AllAnime - " + URI(server.link).host,
+                                    server.resolutionStr,
                                     server.link,
                                     "$apiEndPoint/player?uri=" + (if (URI(server.link).host.isNotEmpty()) server.link else apiEndPoint + URI(
                                         server.link
                                     ).path),
-                                    server.resolutionStr
-                                ).forEach(callback)
-                            } else {
-                                callback(
-                                    ExtractorLink(
-                                        "AllAnime - " + URI(server.link).host,
-                                        server.resolutionStr,
-                                        server.link,
-                                        "$apiEndPoint/player?uri=" + (if (URI(server.link).host.isNotEmpty()) server.link else apiEndPoint + URI(
-                                            server.link
-                                        ).path),
-                                        Qualities.P1080.value,
-                                        false
-                                    )
+                                    Qualities.P1080.value,
+                                    false
                                 )
-                            }
+                            )
                         }
                     }
                 }
