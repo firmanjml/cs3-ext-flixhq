@@ -20,32 +20,32 @@ data class SourceUrls(
 )
 
 data class Episode(
-    @JsonProperty("episodeString") val episodeString: String? = null,
+//    @JsonProperty("episodeString") val episodeString: String? = null,
 //  @JsonProperty("uploadDate"    ) val uploadDate    : UploadDate?           = UploadDate(),
     @JsonProperty("sourceUrls") val sourceUrls: ArrayList<SourceUrls> = arrayListOf(),
-    @JsonProperty("thumbnail") val thumbnail: String? = null,
-    @JsonProperty("notes") val notes: String? = null,
+//    @JsonProperty("thumbnail") val thumbnail: String? = null,
+//    @JsonProperty("notes") val notes: String? = null,
 //  @JsonProperty("show"          ) val show          : Show?                 = Show(),
-    @JsonProperty("pageStatus") val pageStatus: PageStatus? = PageStatus(),
-    @JsonProperty("episodeInfo") val episodeInfo: EpisodeInfo? = EpisodeInfo(),
-    @JsonProperty("versionFix") val versionFix: String? = null,
-    @JsonProperty("__typename") val _typename: String? = null
+//    @JsonProperty("pageStatus") val pageStatus: PageStatus? = PageStatus(),
+//    @JsonProperty("episodeInfo") val episodeInfo: EpisodeInfo? = EpisodeInfo(),
+//    @JsonProperty("versionFix") val versionFix: String? = null,
+//    @JsonProperty("__typename") val _typename: String? = null
 )
 
-data class EpisodeInfo(
-    @JsonProperty("notes") val notes: String? = null,
-    @JsonProperty("thumbnails") val thumbnails: ArrayList<String> = arrayListOf(),
-    @JsonProperty("vidInforssub") val vidInforssub: VidInforssub? = VidInforssub(),
-//  @JsonProperty("uploadDates"  ) val uploadDates  : UploadDates?      = UploadDates(),
-    @JsonProperty("vidInforsdub") val vidInforsdub: String? = null,
-    @JsonProperty("vidInforsraw") val vidInforsraw: String? = null,
-    @JsonProperty("description") val description: String? = null,
-    @JsonProperty("__typename") val _typename: String? = null
-)
+//data class EpisodeInfo(
+//    @JsonProperty("notes") val notes: String? = null,
+//    @JsonProperty("thumbnails") val thumbnails: ArrayList<String> = arrayListOf(),
+//    @JsonProperty("vidInforssub") val vidInforssub: VidInforssub? = VidInforssub(),
+////  @JsonProperty("uploadDates"  ) val uploadDates  : UploadDates?      = UploadDates(),
+//    @JsonProperty("vidInforsdub") val vidInforsdub: String? = null,
+//    @JsonProperty("vidInforsraw") val vidInforsraw: String? = null,
+//    @JsonProperty("description") val description: String? = null,
+//    @JsonProperty("__typename") val _typename: String? = null
+//)
 
-data class VidInforssub(
-    @JsonProperty("vidResolution") val vidResolution: Int? = null,
-    @JsonProperty("vidPath") val vidPath: String? = null,
-    @JsonProperty("vidSize") val vidSize: Int? = null,
-    @JsonProperty("vidDuration") val vidDuration: Double? = null
-)
+//data class VidInforssub(
+//    @JsonProperty("vidResolution") val vidResolution: Int? = null,
+//    @JsonProperty("vidPath") val vidPath: String? = null,
+//    @JsonProperty("vidSize") val vidSize: Int? = null,
+//    @JsonProperty("vidDuration") val vidDuration: Double? = null
+//)

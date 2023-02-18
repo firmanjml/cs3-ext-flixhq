@@ -307,7 +307,7 @@ class AllAnimeProvider : MainAPI() {
         "https://videobin.co/",
         "https://ok.ru",
         "https://streamlare.com",
-        "https://gembedhd.com",
+        "streaming.php",
     )
 
     private fun embedIsBlacklisted(url: String): Boolean {
