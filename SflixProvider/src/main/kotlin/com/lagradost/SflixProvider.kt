@@ -458,7 +458,7 @@ open class SflixProvider : MainAPI() {
         }
 
         suspend fun getKey(): String? {
-            return app.get("https://raw.githubusercontent.com/consumet/rapidclown/rabbitstream/key.txt")
+            return app.get("https://raw.githubusercontent.com/enimax-anime/key/e4/key.txt")
                 .text
         }
 
