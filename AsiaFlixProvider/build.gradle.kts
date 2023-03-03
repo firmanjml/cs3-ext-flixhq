@@ -16,7 +16,8 @@ cloudstream {
      * 2: Slow
      * 3: Beta only
      * */
-    status = 1 // will be 3 if unspecified
+    // Removed as it is an AsianLoad scraper
+    status = 0 // will be 3 if unspecified
     tvTypes = listOf(
         "AsianDrama",
         "OVA",
