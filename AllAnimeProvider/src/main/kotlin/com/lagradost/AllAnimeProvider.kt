@@ -7,6 +7,7 @@ import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 import com.lagradost.cloudstream3.mvvm.safeApiCall
 import com.lagradost.cloudstream3.utils.AppUtils.parseJson
 import com.lagradost.cloudstream3.utils.AppUtils.toJson
+import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
 import com.lagradost.cloudstream3.utils.Coroutines.mainWork
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.M3u8Helper
@@ -45,6 +46,22 @@ class AllAnimeProvider : MainAPI() {
         @JsonProperty("__typename") val _typename: String
     )
 
+    data class CharacterImage(
+        @JsonProperty("large") val large: String?,
+        @JsonProperty("medium") val medium: String?
+    )
+
+    data class CharacterName(
+        @JsonProperty("full") val full: String?,
+        @JsonProperty("native") val native: String?
+    )
+
+    data class Characters(
+        @JsonProperty("image") val image: CharacterImage?,
+        @JsonProperty("role") val role: String?,
+        @JsonProperty("name") val name: CharacterName?,
+    )
+
     private data class Edges(
         @JsonProperty("_id") val Id: String?,
         @JsonProperty("name") val name: String,
@@ -60,6 +77,7 @@ class AllAnimeProvider : MainAPI() {
         @JsonProperty("studios") val studios: List<String>?,
         @JsonProperty("genres") val genres: List<String>?,
         @JsonProperty("averageScore") val averageScore: Int?,
+        @JsonProperty("characters") val characters: List<Characters>?,
         @JsonProperty("description") val description: String?,
         @JsonProperty("status") val status: String?,
         @JsonProperty("banner") val banner: String?,
@@ -182,11 +200,11 @@ class AllAnimeProvider : MainAPI() {
     override suspend fun search(query: String): List<SearchResponse> {
         val link =
             """$mainUrl/allanimeapi?variables={"search":{"allowAdult":false,"allowUnknown":false,"query":"$query"},"limit":26,"page":1,"translationType":"sub","countryOrigin":"ALL"}&extensions={"persistedQuery":{"version":1,"sha256Hash":"9c7a8bc1e095a34f2972699e8105f7aaf9082c6e1ccd56eab99c2f1a971152c6"}}"""
-        var res = app.get(link).text
-        if (res.contains("PERSISTED_QUERY_NOT_FOUND")) {
-            res = app.get(link).text
-            if (res.contains("PERSISTED_QUERY_NOT_FOUND")) return emptyList()
-        }
+        val res = app.get(link).text.takeUnless { it.contains("PERSISTED_QUERY_NOT_FOUND") }
+            // Retries
+            ?: app.get(link).text.takeUnless { it.contains("PERSISTED_QUERY_NOT_FOUND") }
+            ?: return emptyList()
+
         val response = parseJson<AllAnimeQuery>(res)
 
         val results = response.data.shows.edges.filter {
@@ -211,16 +229,18 @@ class AllAnimeProvider : MainAPI() {
         @JsonProperty("raw") val raw: List<String>
     )
 
-    override suspend fun load(url: String): LoadResponse? {
-        val (rhino, scope) = mainWork {
-            val rhino = Context.enter()
-            rhino.optimizationLevel = -1
-            val scope: Scriptable = rhino.initSafeStandardObjects()
-            rhino to scope
-        }
-
-        val html = app.get(url).text
+    /**
+     * @return the show info, or the redirect url if the url is outdated
+     **/
+    private suspend fun getShow(url: String, rhino: Context): String? {
+        // Fix old bookmarks.
+        val fixedUrl = url.replace("https://allanime.site", mainUrl)
+        val html = app.get(fixedUrl).text
         val soup = Jsoup.parse(html)
+
+        val scope = mainWork {
+            rhino.initSafeStandardObjects() as Scriptable
+        }
 
         val script = soup.select("script").firstOrNull {
             it.html().contains("window.__NUXT__")
@@ -229,15 +249,30 @@ class AllAnimeProvider : MainAPI() {
         val js = """
             const window = {}
             ${script.html()}
-            const returnValue = JSON.stringify(window.__NUXT__.fetch[0].show)
+            const returnValue = JSON.stringify(window.__NUXT__.fetch[0].show) || window.__NUXT__.fetch[0].errorQueryString
         """.trimIndent()
 
-        val jsEval = mainWork {
+        return mainWork {
             rhino.evaluateString(scope, js, "JavaScript", 1, null)
             scope.get("returnValue", scope) ?: return@mainWork null
-        } ?: return null
+        } as? String
+    }
 
-        val showData = parseJson<Edges>(jsEval as String)
+    override suspend fun load(url: String): LoadResponse? {
+        val rhino = mainWork {
+            Context.enter().apply {
+                this.optimizationLevel = -1
+            }
+        }
+
+        val show = getShow(url, rhino) ?: return null
+        // Try parsing the maybe show string
+        val showData = tryParseJson<Edges>(show)
+        // Use the redirect url if the url is outdated
+            ?: getShow(
+                fixUrl(show),
+                rhino
+            )?.let { parseJson<Edges>(it) } ?: return null
 
         val title = showData.name
         val description = showData.description
@@ -258,16 +293,16 @@ class AllAnimeProvider : MainAPI() {
             }) else null)
         }
 
-        val characters = soup.select("div.character > div.card-character-box").mapNotNull {
-            val img = it?.selectFirst("img")?.attr("src") ?: return@mapNotNull null
-            val name = it.selectFirst("div > a")?.ownText() ?: return@mapNotNull null
-            val role = when (it.selectFirst("div > .text-secondary")?.text()?.trim()) {
+        val characters = showData.characters?.map {
+            val role = when (it.role) {
                 "Main" -> ActorRole.Main
                 "Supporting" -> ActorRole.Supporting
                 "Background" -> ActorRole.Background
                 else -> null
             }
-            Pair(Actor(name, img), role)
+            val name = it.name?.full ?: it.name?.native ?: ""
+            val image = it.image?.large ?: it.image?.medium
+            Pair(Actor(name, image), role)
         }
 
         // bruh, they use graphql and bruh it is fucked
@@ -325,14 +360,6 @@ class AllAnimeProvider : MainAPI() {
         return false
     }
 
-    private fun String.sanitize(): String {
-        var out = this
-        listOf(Pair("\\u002F", "/")).forEach {
-            out = out.replace(it.first, it.second)
-        }
-        return out
-    }
-
     private data class Links(
         @JsonProperty("link") val link: String,
         @JsonProperty("hls") val hls: Boolean?,
@@ -374,10 +401,8 @@ class AllAnimeProvider : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ): Boolean {
         val loadData = parseJson<AllAnimeLoadData>(data)
-        var apiEndPoint =
-            parseJson<ApiEndPoint>(app.get("$mainUrl/getVersion").text).episodeIframeHead
-        if (apiEndPoint.endsWith("/")) apiEndPoint =
-            apiEndPoint.slice(0 until apiEndPoint.length - 1)
+        val apiEndPoint =
+            parseJson<ApiEndPoint>(app.get("$mainUrl/getVersion").text).episodeIframeHead.removeSuffix("/")
 
         val apiUrl =
             """$apiUrl/allanimeapi?variables={"showId":"${loadData.hash}","translationType":"${loadData.dubStatus}","episodeString":"${loadData.episode}"}&extensions={"persistedQuery":{"version":1,"sha256Hash":"1f0a5d6c9ce6cd3127ee4efd304349345b0737fbf5ec33a60bbc3d18e3bb7c61"}}"""
