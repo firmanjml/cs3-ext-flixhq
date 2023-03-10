@@ -136,11 +136,11 @@ class AllAnimeProvider : MainAPI() {
     override val mainPage = listOf(
         MainPageData(
             recentTitle,
-            """$mainUrl/allanimeapi?variables={"search":{"sortBy":"Recent","allowAdult":${settingsForProvider.enableAdult},"allowUnknown":false},"limit":26,"page":%d,"translationType":"sub","countryOrigin":"ALL"}&extensions={"persistedQuery":{"version":1,"sha256Hash":"9c7a8bc1e095a34f2972699e8105f7aaf9082c6e1ccd56eab99c2f1a971152c6"}}"""
+            """$mainUrl/allanimeapi?variables={"search":{"sortBy":"Recent","allowAdult":${settingsForProvider.enableAdult},"allowUnknown":false},"limit":26,"page":%d,"translationType":"sub","countryOrigin":"ALL"}&extensions={"persistedQuery":{"version":1,"sha256Hash":"c4305f3918591071dfecd081da12243725364f6b7dd92072df09d915e390b1b7"}}"""
         ),
         MainPageData(
             popularTitle,
-            """$mainUrl/allanimeapi?variables={"type":"anime","size":30,"dateRange":1,"page":%d,"allowAdult":${settingsForProvider.enableAdult},"allowUnknown":false}&extensions={"persistedQuery":{"version":1,"sha256Hash":"6f6fe5663e3e9ea60bdfa693f878499badab83e7f18b56acdba5f8e8662002aa"}}"""
+            """$mainUrl/allanimeapi?variables={"type":"anime","size":30,"dateRange":1,"page":%d,"allowAdult":${settingsForProvider.enableAdult},"allowUnknown":false}&extensions={"persistedQuery":{"version":1,"sha256Hash":"563c9c7c7fb5218aaf5562ad5d7cabb9ece03a36b4bc94f1384ba70709bd61da"}}"""
         )
     )
 
@@ -199,7 +199,7 @@ class AllAnimeProvider : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val link =
-            """$mainUrl/allanimeapi?variables={"search":{"allowAdult":false,"allowUnknown":false,"query":"$query"},"limit":26,"page":1,"translationType":"sub","countryOrigin":"ALL"}&extensions={"persistedQuery":{"version":1,"sha256Hash":"9c7a8bc1e095a34f2972699e8105f7aaf9082c6e1ccd56eab99c2f1a971152c6"}}"""
+            """$mainUrl/allanimeapi?variables={"search":{"allowAdult":false,"allowUnknown":false,"query":"$query"},"limit":26,"page":1,"translationType":"sub","countryOrigin":"ALL"}&extensions={"persistedQuery":{"version":1,"sha256Hash":"c4305f3918591071dfecd081da12243725364f6b7dd92072df09d915e390b1b7"}}"""
         val res = app.get(link).text.takeUnless { it.contains("PERSISTED_QUERY_NOT_FOUND") }
             // Retries
             ?: app.get(link).text.takeUnless { it.contains("PERSISTED_QUERY_NOT_FOUND") }
@@ -405,7 +405,7 @@ class AllAnimeProvider : MainAPI() {
             parseJson<ApiEndPoint>(app.get("$mainUrl/getVersion").text).episodeIframeHead.removeSuffix("/")
 
         val apiUrl =
-            """$apiUrl/allanimeapi?variables={"showId":"${loadData.hash}","translationType":"${loadData.dubStatus}","episodeString":"${loadData.episode}"}&extensions={"persistedQuery":{"version":1,"sha256Hash":"1f0a5d6c9ce6cd3127ee4efd304349345b0737fbf5ec33a60bbc3d18e3bb7c61"}}"""
+            """$apiUrl/allanimeapi?variables={"showId":"${loadData.hash}","translationType":"${loadData.dubStatus}","episodeString":"${loadData.episode}"}&extensions={"persistedQuery":{"version":1,"sha256Hash":"919e327075ac9e249d003aa3f804a48bbdf22d7b1d107ffe659accd54283ce48"}}"""
         val apiResponse = app.get(apiUrl).parsed<LinksQuery>()
 
         apiResponse.data?.episode?.sourceUrls?.apmap { source ->
