@@ -201,7 +201,7 @@ class AllAnimeProvider : MainAPI() {
         val link =
             """$mainUrl/allanimeapi?variables={"search":{"allowAdult":false,"allowUnknown":false,"query":"$query"},"limit":26,"page":1,"translationType":"sub","countryOrigin":"ALL"}&extensions={"persistedQuery":{"version":1,"sha256Hash":"c4305f3918591071dfecd081da12243725364f6b7dd92072df09d915e390b1b7"}}"""
         val res = app.get(link).text.takeUnless { it.contains("PERSISTED_QUERY_NOT_FOUND") }
-            // Retries
+        // Retries
             ?: app.get(link).text.takeUnless { it.contains("PERSISTED_QUERY_NOT_FOUND") }
             ?: return emptyList()
 
@@ -360,11 +360,23 @@ class AllAnimeProvider : MainAPI() {
         return false
     }
 
+    private data class Stream(
+        @JsonProperty("format") val format: String? = null,
+        @JsonProperty("audio_lang") val audio_lang: String? = null,
+        @JsonProperty("hardsub_lang") val hardsub_lang: String? = null,
+        @JsonProperty("url") val url: String? = null,
+    )
+
+    private data class PortData(
+        @JsonProperty("streams") val streams: ArrayList<Stream>? = arrayListOf(),
+    )
+
     private data class Links(
         @JsonProperty("link") val link: String,
         @JsonProperty("hls") val hls: Boolean?,
         @JsonProperty("resolutionStr") val resolutionStr: String,
-        @JsonProperty("src") val src: String?
+        @JsonProperty("src") val src: String?,
+        @JsonProperty("portData") val portData: PortData? = null,
     )
 
     private data class AllAnimeVideoApiResponse(
@@ -393,6 +405,16 @@ class AllAnimeProvider : MainAPI() {
         val dubStatus: String,
         val episode: Int
     )
+
+    private suspend fun PortData.extractAcSources(callback: (ExtractorLink) -> Unit) {
+        this.streams?.filter { it.format == "adaptive_hls" && it.hardsub_lang == "en-US" }?.map { source ->
+            M3u8Helper.generateM3u8(
+                "Crunchyroll",
+                source.url ?: return@map,
+                "https://static.crunchyroll.com/",
+            ).forEach(callback)
+        }
+    }
 
     override suspend fun loadLinks(
         data: String,
@@ -436,27 +458,33 @@ class AllAnimeProvider : MainAPI() {
                     val links = app.get(fixedLink).parsedSafe<AllAnimeVideoApiResponse>()?.links
                         ?: emptyList()
                     links.forEach { server ->
-                        if (server.hls != null && server.hls) {
-                            getM3u8Qualities(
-                                server.link,
-                                "$apiEndPoint/player?uri=" + (if (URI(server.link).host.isNotEmpty()) server.link else apiEndPoint + URI(
-                                    server.link
-                                ).path),
-                                server.resolutionStr
-                            ).forEach(callback)
-                        } else {
-                            callback(
-                                ExtractorLink(
-                                    "AllAnime - " + URI(server.link).host,
-                                    server.resolutionStr,
+                        when {
+                            source.sourceName == "Ac" -> {
+                                server.portData?.extractAcSources(callback)
+                            }
+                            server.hls != null && server.hls -> {
+                                getM3u8Qualities(
                                     server.link,
                                     "$apiEndPoint/player?uri=" + (if (URI(server.link).host.isNotEmpty()) server.link else apiEndPoint + URI(
                                         server.link
                                     ).path),
-                                    Qualities.P1080.value,
-                                    false
+                                    server.resolutionStr
+                                ).forEach(callback)
+                            }
+                            else -> {
+                                callback(
+                                    ExtractorLink(
+                                        "AllAnime - " + URI(server.link).host,
+                                        server.resolutionStr,
+                                        server.link,
+                                        "$apiEndPoint/player?uri=" + (if (URI(server.link).host.isNotEmpty()) server.link else apiEndPoint + URI(
+                                            server.link
+                                        ).path),
+                                        Qualities.P1080.value,
+                                        false
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
                 }
