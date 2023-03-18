@@ -5,7 +5,6 @@ import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.loadExtractor
 
 class KimCartoonProvider : MainAPI() {
-
     override var mainUrl = "https://kimcartoon.li"
     override var name = "Kim Cartoon"
     override val hasQuickSearch = true
@@ -73,7 +72,7 @@ class KimCartoonProvider : MainAPI() {
                 AnimeSearchResponse(
                     it.select("span").text(),
                     mainUrl + it.attr("href"),
-                    mainUrl,
+                    name,
                     TvType.Cartoon,
                     fixUrl(it.select("img").attr("src"))
                 )
