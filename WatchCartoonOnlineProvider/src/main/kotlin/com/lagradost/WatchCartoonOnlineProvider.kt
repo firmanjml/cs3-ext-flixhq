@@ -22,7 +22,7 @@ class WatchCartoonOnlineProvider : MainAPI() {
         TvType.TvSeries
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse? {
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val doc = app.get(mainUrl).document
         val rows = doc.select("div.recent-release").mapNotNull {
             val rowName = it.text()
@@ -121,7 +121,18 @@ class WatchCartoonOnlineProvider : MainAPI() {
 
     override suspend fun load(url: String): LoadResponse {
         val isSeries = url.contains("/anime/")
+        val episodeRegex = Regex("""-episode-\d+""")
         val document = app.get(url).document
+
+        // Retries link loading when an episode page is opened, usually from home.
+        // The slug system is too unpredictable to skip this step.
+        if (url.contains(episodeRegex)) {
+            val link = document.select("div.ildate > a").attr("href")
+            // Must not contain the episode regex, otherwise infinite recursion.
+            if (!link.contains(episodeRegex)) {
+                return load(link)
+            }
+        }
 
         return if (isSeries) {
             val title = document.selectFirst("td.vsbaslik > h2")!!.text()
@@ -148,7 +159,7 @@ class WatchCartoonOnlineProvider : MainAPI() {
                     return@map Episode(
                         href,
                         if (last.startsWith("English")) null else last,
-                        null,
+                        1,
                         match2.groupValues[1].toIntOrNull(),
                     )
                 }
@@ -202,15 +213,16 @@ class WatchCartoonOnlineProvider : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ): Boolean {
         val document = app.get(data).document
-        val foundJS = document.select("div.iltext > script").html()
 
-        // Find the variable name, eg: var HAi = "";
-        val varRegex = Regex("""var (\S*)""")
+        val src = document.select("iframe#frameNewAnimeuploads0").attr("src").ifBlank { null } ?: mainWork {
+            val foundJS = document.select("div.iltext > script").html()
 
-        val varName = varRegex.find(foundJS)?.groupValues?.get(1)
-            ?: throw RuntimeException("Cannot find var name!")
+            // Find the variable name, eg: var HAi = "";
+            val varRegex = Regex("""var (\S*)""")
 
-        val src = document.select("iframe#frameNewAnimeuploads0").attr("src") ?: mainWork {
+            val varName = varRegex.find(foundJS)?.groupValues?.get(1)
+                ?: throw RuntimeException("Cannot find var name!")
+
             // Rhino needs to be on main
             val rhino = Context.enter()
             rhino.optimizationLevel = -1
